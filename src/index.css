@@ -1,0 +1,578 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 210 50% 5%;
+    --foreground: 210 40% 98%;
+
+    --card: 210 50% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 210 50% 6%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 195 85% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 195 85% 60%;
+
+    --secondary: 200 80% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 19% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 280 75% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 19% 12%;
+    --input: 217 19% 10%;
+    --ring: 199 89% 48%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --radius: 0.5rem;
+    
+    /* 1win style gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(199 89% 48%), hsl(265 85% 58%));
+    --gradient-secondary: linear-gradient(135deg, hsl(265 85% 58%), hsl(280 75% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(265 85% 58%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(222 47% 7%) 0%, hsl(222 47% 4%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(222 47% 8%) 0%, hsl(222 47% 6%) 100%);
+    --gradient-neon: linear-gradient(90deg, hsl(199 89% 48%), hsl(265 85% 58%), hsl(199 89% 48%));
+    --gradient-conic: conic-gradient(from 0deg, hsl(199 89% 48%), hsl(265 85% 58%), hsl(280 75% 55%), hsl(199 89% 48%));
+    
+    /* Neon shadows */
+    --shadow-neon-blue: 0 0 20px hsl(199 89% 48% / 0.5), 0 0 40px hsl(199 89% 48% / 0.3);
+    --shadow-neon-purple: 0 0 20px hsl(265 85% 58% / 0.5), 0 0 40px hsl(265 85% 58% / 0.3);
+    --shadow-card: 0 4px 20px hsl(222 47% 4% / 0.5);
+    --shadow-glow: 0 0 30px hsl(199 89% 48% / 0.6), 0 0 60px hsl(265 85% 58% / 0.4);
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 217 19% 12%;
+  }
+
+  .dark {
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+  }
+}
+
+/* Utility classes */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(180deg, #0c1929 0%, #162a43 30%, #1a3a5c 60%, #0d2137 100%);
+    background-attachment: fixed;
+    position: relative;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(120, 0, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255, 0, 150, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(0, 150, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+/* 1win Style Animations */
+@keyframes neon-pulse {
+  0%, 100% {
+    text-shadow: 0 0 10px hsl(199 89% 48% / 0.8),
+                 0 0 20px hsl(199 89% 48% / 0.6),
+                 0 0 30px hsl(265 85% 58% / 0.4);
+  }
+  50% {
+    text-shadow: 0 0 20px hsl(199 89% 48% / 1),
+                 0 0 40px hsl(199 89% 48% / 0.8),
+                 0 0 60px hsl(265 85% 58% / 0.6);
+  }
+}
+
+@keyframes neon-border {
+  0%, 100% {
+    box-shadow: 0 0 10px hsl(199 89% 48% / 0.5),
+                0 0 20px hsl(199 89% 48% / 0.3),
+                inset 0 0 10px hsl(199 89% 48% / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(199 89% 48% / 0.8),
+                0 0 40px hsl(199 89% 48% / 0.5),
+                inset 0 0 20px hsl(199 89% 48% / 0.3);
+  }
+}
+
+@keyframes slide-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes win-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg); opacity: 1; }
+}
+
+@keyframes coin-fall {
+  0% { transform: translateY(-100px) rotate(0deg); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes rocket-launch {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
+}
+
+@keyframes explosion {
+  0% { transform: scale(0); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 5px currentColor); }
+  50% { filter: drop-shadow(0 0 20px currentColor); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes balloon-inflate {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes balloon-pop {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-20px) translateX(10px); }
+}
+
+@keyframes graph-draw {
+  0% { stroke-dashoffset: 1000; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes penalty-kick {
+  0% {
+    transform: translate(-50%, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -200px) scale(0.8) rotate(180deg);
+  }
+  100% {
+    transform: translate(-50%, -350px) scale(0.4) rotate(360deg);
+    opacity: 0.3;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes aurora {
+  0%, 100% {
+    transform: translateX(-10%) skewX(-5deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(10%) skewX(5deg);
+    opacity: 0.5;
+  }
+}
+
+@keyframes fire-particle {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes matrix-fall {
+  0% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes float-particle {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(10px, -20px) scale(1.1);
+  }
+  50% {
+    transform: translate(-5px, -40px) scale(0.9);
+  }
+  75% {
+    transform: translate(-15px, -20px) scale(1.05);
+  }
+}
+
+/* Sweet Bonanza Slot Animations */
+@keyframes cascade-drop {
+  0% {
+    transform: translateY(-60px) scale(0.6);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(8px) scale(1.05);
+  }
+  85% {
+    transform: translateY(-3px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes explode-symbol {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.4) rotate(10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes winning-pulse {
+  0%, 100% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.8);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 35px rgba(234, 179, 8, 1);
+  }
+}
+
+@keyframes particle-1 {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(-30px, -40px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-2 {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(30px, -35px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-3 {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(-25px, 30px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-4 {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(35px, 25px) scale(0); opacity: 0; }
+}
+
+@layer utilities {
+  .animate-neon-pulse {
+    animation: neon-pulse 2s ease-in-out infinite;
+  }
+  
+  .animate-neon-border {
+    animation: neon-border 2s ease-in-out infinite;
+  }
+  
+  .animate-slide-gradient {
+    background-size: 200% 200%;
+    animation: slide-gradient 3s ease infinite;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, hsl(199 89% 48% / 0.3), transparent);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  .animate-win-burst {
+    animation: win-burst 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  .animate-coin-fall {
+    animation: coin-fall 3s ease-in infinite;
+  }
+  
+  .animate-rocket-launch {
+    animation: rocket-launch 2s ease-out forwards;
+  }
+  
+  .animate-explosion {
+    animation: explosion 0.6s ease-out forwards;
+  }
+  
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+  
+  .animate-bounce-in {
+    animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out forwards;
+  }
+  
+  .animate-balloon-inflate {
+    animation: balloon-inflate 0.3s ease-out;
+  }
+  
+  .animate-balloon-pop {
+    animation: balloon-pop 0.5s ease-out;
+  }
+  
+  .animate-graph-draw {
+    animation: graph-draw 2s linear infinite;
+  }
+  
+  .animate-penalty-kick {
+    animation: penalty-kick 0.8s ease-out;
+  }
+  
+  .animate-snowfall {
+    animation: snowfall 10s linear infinite;
+  }
+  
+  .animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  
+  .animate-fire-particle {
+    animation: fire-particle 3s ease-out infinite;
+  }
+  
+  .animate-matrix-fall {
+    animation: matrix-fall 5s linear infinite;
+  }
+  
+  .animate-float-particle {
+    animation: float-particle 8s ease-in-out infinite;
+  }
+  
+  /* Sweet Bonanza slot animations */
+  .animate-cascade-drop {
+    animation: cascade-drop 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  .animate-explode {
+    animation: explode-symbol 0.35s ease-out forwards;
+  }
+  
+  .animate-winning-pulse {
+    animation: winning-pulse 0.4s ease-in-out infinite;
+  }
+  
+  .animate-particle-1 {
+    animation: particle-1 0.4s ease-out forwards;
+  }
+  
+  .animate-particle-2 {
+    animation: particle-2 0.4s ease-out forwards;
+  }
+  
+  .animate-particle-3 {
+    animation: particle-3 0.4s ease-out forwards;
+  }
+  
+  .animate-particle-4 {
+    animation: particle-4 0.4s ease-out forwards;
+  }
+  
+  /* Neon effects */
+  .text-neon {
+    text-shadow: 0 0 10px currentColor,
+                 0 0 20px currentColor,
+                 0 0 30px currentColor;
+  }
+  
+  .border-neon {
+    box-shadow: 0 0 10px hsl(199 89% 48% / 0.5),
+                0 0 20px hsl(199 89% 48% / 0.3),
+                inset 0 0 10px hsl(199 89% 48% / 0.2);
+  }
+  
+  /* Gradients */
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .bg-gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .bg-gradient-accent {
+    background: var(--gradient-accent);
+  }
+  
+  .bg-gradient-dark {
+    background: var(--gradient-dark);
+  }
+  
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .bg-gradient-neon {
+    background: var(--gradient-neon);
+  }
+  
+  /* Shadows */
+  .shadow-neon-blue {
+    box-shadow: var(--shadow-neon-blue);
+  }
+  
+  .shadow-neon-purple {
+    box-shadow: var(--shadow-neon-purple);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  /* VIP/Admin gradient animated username */
+  @keyframes vip-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .vip-gradient-text {
+    background: linear-gradient(
+      90deg,
+      hsl(45, 100%, 50%),
+      hsl(35, 100%, 60%),
+      hsl(60, 100%, 50%),
+      hsl(280, 100%, 60%),
+      hsl(200, 100%, 60%),
+      hsl(45, 100%, 50%)
+    );
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: vip-gradient 3s ease infinite;
+    font-weight: bold;
+  }
+}
