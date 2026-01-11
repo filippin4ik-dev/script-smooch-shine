@@ -34,6 +34,7 @@ import { WheelPresetManager } from "@/components/admin/WheelPresetManager";
 import { EmailAccountManager } from "@/components/admin/EmailAccountManager";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BettingTournamentManager } from "@/components/admin/BettingTournamentManager";
+import { BulkDataImport } from "@/components/admin/BulkDataImport";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -504,6 +505,16 @@ const Admin = () => {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 {user?.id && <EmailAccountManager userId={user.id} />}
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Импорт данных */}
+            <AccordionItem value="bulk-import" className="border rounded-lg bg-card/50">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <span className="text-lg font-bold">📦 Массовый импорт</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <BulkDataImport />
               </AccordionContent>
             </AccordionItem>
           </Accordion>
