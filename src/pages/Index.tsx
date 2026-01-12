@@ -32,8 +32,6 @@ import { TopWinners } from "@/components/TopWinners";
 import { LiveWinners } from "@/components/LiveWinners";
 import { TelegramPromo } from "@/components/TelegramPromo";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
-import { JackpotCounter } from "@/components/JackpotCounter";
-import { FloatingParticles } from "@/components/FloatingParticles";
 import { DiceGame } from "@/components/games/DiceGame";
 import { MinesGame } from "@/components/games/MinesGame";
 import { TowersGame } from "@/components/games/TowersGame";
@@ -245,9 +243,7 @@ const Index = () => {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-dark flex relative">
-        {/* Floating particles background */}
-        <FloatingParticles count={25} />
+      <div className="min-h-screen bg-gradient-dark flex">
         {/* Sidebar - Desktop only */}
         <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-card/80 via-card/60 to-card/40 backdrop-blur-xl border-r border-primary/30 sticky top-0 h-screen shadow-xl">
           <div className="p-6 border-b border-primary/30 bg-gradient-to-r from-primary/5 to-purple-500/5">
@@ -503,9 +499,6 @@ const Index = () => {
           <main className="p-3 sm:p-6 max-w-7xl mx-auto">
             {!selectedGame ? (
               <div className="space-y-4 sm:space-y-6">
-                {/* Jackpot Counter */}
-                <JackpotCounter className="max-w-2xl mx-auto" />
-
                 {/* Promo Banner */}
                 <div className="max-w-2xl mx-auto">
                   <PromoBanner />

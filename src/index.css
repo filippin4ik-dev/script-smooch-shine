@@ -312,48 +312,6 @@ All colors MUST be HSL.
   }
 }
 
-@keyframes float-slow {
-  0%, 100% {
-    transform: translateY(0) translateX(0) rotate(0deg);
-    opacity: 0.3;
-  }
-  25% {
-    transform: translateY(-30px) translateX(10px) rotate(5deg);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(-15px) translateX(-10px) rotate(-3deg);
-    opacity: 0.4;
-  }
-  75% {
-    transform: translateY(-40px) translateX(5px) rotate(2deg);
-    opacity: 0.5;
-  }
-}
-
-@keyframes shimmer-fast {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes bounce-slow {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-10px) scale(1.05);
-  }
-}
-
-@keyframes star-twinkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-}
-
 /* Sweet Bonanza Slot Animations */
 @keyframes cascade-drop {
   0% {
@@ -507,22 +465,6 @@ All colors MUST be HSL.
   
   .animate-float-particle {
     animation: float-particle 8s ease-in-out infinite;
-  }
-  
-  .animate-float-slow {
-    animation: float-slow 20s ease-in-out infinite;
-  }
-  
-  .animate-shimmer-fast {
-    animation: shimmer-fast 1.5s ease-in-out infinite;
-  }
-  
-  .animate-bounce-slow {
-    animation: bounce-slow 2s ease-in-out infinite;
-  }
-  
-  .animate-star-twinkle {
-    animation: star-twinkle 1.5s ease-in-out infinite;
   }
   
   /* Sweet Bonanza slot animations */
