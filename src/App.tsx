@@ -8,6 +8,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useSnowSettings } from "@/hooks/useSnowSettings";
 import { Snowfall } from "@/components/Snowfall";
+import { PerformanceProvider } from "@/hooks/usePerformance";
 
 // Snow context
 interface SnowContextType {
@@ -229,16 +230,18 @@ const App = () => {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <SnowContext.Provider value={{ isSnowEnabled, toggleSnow }}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          {isSnowEnabled && <Snowfall />}
-          <NetworkChecker>
-            <AppContent />
-          </NetworkChecker>
-        </TooltipProvider>
-      </SnowContext.Provider>
+      <PerformanceProvider>
+        <SnowContext.Provider value={{ isSnowEnabled, toggleSnow }}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            {isSnowEnabled && <Snowfall />}
+            <NetworkChecker>
+              <AppContent />
+            </NetworkChecker>
+          </TooltipProvider>
+        </SnowContext.Provider>
+      </PerformanceProvider>
     </QueryClientProvider>
   );
 };

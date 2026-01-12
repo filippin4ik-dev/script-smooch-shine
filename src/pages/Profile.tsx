@@ -25,6 +25,7 @@ import { LevelCard } from "@/components/profile/LevelCard";
 import { ProfileNavButtons } from "@/components/profile/ProfileNavButtons";
 import { EmailVerification } from "@/components/profile/EmailVerification";
 import { ProfileAchievements } from "@/components/profile/ProfileAchievements";
+import { PerformanceSettings } from "@/components/profile/PerformanceSettings";
 
 // Icons
 import { 
@@ -202,6 +203,9 @@ const Profile = () => {
       case "settings":
         return (
           <div className="space-y-4 animate-fade-in">
+            {/* Performance Settings */}
+            <PerformanceSettings />
+
             {/* Game Search by Number */}
             <GameSearchByNumber />
 
