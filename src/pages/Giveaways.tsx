@@ -13,6 +13,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { VipUsername, GradientColor } from "@/components/VipUsername";
 import { BuffWheelRoulette } from "@/components/BuffWheelRoulette";
 import { TasksList } from "@/components/TasksList";
+import { BettingTournamentsSection } from "@/components/BettingTournamentsSection";
 // GiveawayWinStreak temporarily removed
 import { cn } from "@/lib/utils";
 
@@ -537,6 +538,9 @@ const Giveaways = () => {
           {user?.id && (
             <BuffWheelRoulette userId={user.id} />
           )}
+
+          {/* Betting Tournaments Section */}
+          <BettingTournamentsSection userId={user?.id} />
 
           {/* Active giveaways */}
           {activeGiveaways.length > 0 && (
