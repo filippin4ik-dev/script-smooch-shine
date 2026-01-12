@@ -3636,6 +3636,13 @@ export type Database = {
         }
         Returns: Json
       }
+      deduct_demo_balance: {
+        Args: { _admin_id: string; _amount: number; _target_user_id: string }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
       delete_admin_achievement: {
         Args: { _achievement_id: string; _admin_id: string }
         Returns: boolean
