@@ -1,6 +1,6 @@
 import { AuthGuard, useAuth } from "@/components/AuthGuard";
 import { useProfile } from "@/hooks/useProfile";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,18 @@ const Bets = () => {
   const [matchFilter, setMatchFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
   const [showParlayCheckout, setShowParlayCheckout] = useState(false);
   const isMobile = useIsMobile();
+
+  // Realtime подписка на изменения матчей
+  useEffect(() => {
+    const channel = supabase
+      .channel('matches-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["matches"] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const { data: matches } = useQuery({
     queryKey: ["matches"],
