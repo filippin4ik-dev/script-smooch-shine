@@ -13,8 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Medal, Award, Trash2 } from "lucide-react";
+import { Trophy, Medal, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/AuthGuard";
 
 const ACHIEVEMENT_PRESETS = [
   { id: "tournament_1", title: "🥇 1 место в турнире", icon: "🥇", rarity: "legendary", place: 1 },
@@ -26,6 +27,7 @@ const ACHIEVEMENT_PRESETS = [
 ];
 
 export const AchievementGiver = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedPreset, setSelectedPreset] = useState<string>("");
@@ -85,8 +87,7 @@ export const AchievementGiver = () => {
 
       if (!description.trim()) throw new Error("Введите описание (за что выдана)");
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Не авторизован");
+      if (!user?.id) throw new Error("Не авторизован");
 
       const { error } = await supabase.from("admin_achievements").insert({
         user_id: selectedUserId,
