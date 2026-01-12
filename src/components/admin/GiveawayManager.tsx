@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Gift, Users, Trophy, Trash2, Clock, Target, Zap, Copy } from "lucide-react";
+import { Gift, Users, Trophy, Trash2, Clock, Target, Zap, Copy, Palette, Plus, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { VipUsername, GradientColor } from "@/components/VipUsername";
 
 interface GiveawayManagerProps {
@@ -51,6 +52,39 @@ export const GiveawayManager = ({ adminId }: GiveawayManagerProps) => {
   const [registrationDurationUnit, setRegistrationDurationUnit] = useState<"days" | "hours" | "minutes" | "seconds">("days");
   const [achievementType, setAchievementType] = useState("most_wins");
   const [achievementGame, setAchievementGame] = useState("");
+  
+  // Wheel settings
+  const [hasWheel, setHasWheel] = useState(false);
+  const [wheelSegments, setWheelSegments] = useState<Array<{
+    key: string;
+    label: string;
+    color: string;
+    rewardType: string;
+    rewardAmount: number;
+  }>>([]);
+
+  const addWheelSegment = () => {
+    setWheelSegments([
+      ...wheelSegments,
+      {
+        key: `segment_${Date.now()}`,
+        label: "",
+        color: "#8B5CF6",
+        rewardType: "balance",
+        rewardAmount: 0,
+      },
+    ]);
+  };
+
+  const updateWheelSegment = (index: number, field: string, value: any) => {
+    const updated = [...wheelSegments];
+    updated[index] = { ...updated[index], [field]: value };
+    setWheelSegments(updated);
+  };
+
+  const removeWheelSegment = (index: number) => {
+    setWheelSegments(wheelSegments.filter((_, i) => i !== index));
+  };
 
   const { data: giveaways } = useQuery({
     queryKey: ["admin-giveaways"],
@@ -133,6 +167,12 @@ export const GiveawayManager = ({ adminId }: GiveawayManagerProps) => {
         insertData.achievement_start_at = now.toISOString();
       }
 
+      // Add wheel settings
+      if (hasWheel && wheelSegments.length >= 2) {
+        insertData.has_wheel = true;
+        insertData.wheel_segments = wheelSegments;
+      }
+
       const { error } = await supabase.from("giveaways").insert(insertData);
       if (error) throw error;
     },
@@ -148,6 +188,8 @@ export const GiveawayManager = ({ adminId }: GiveawayManagerProps) => {
       setEndDurationUnit("days");
       setRegistrationDurationValue("");
       setRegistrationDurationUnit("days");
+      setHasWheel(false);
+      setWheelSegments([]);
     },
     onError: (error: any) => {
       console.error("Create giveaway error:", error);
@@ -453,6 +495,86 @@ export const GiveawayManager = ({ adminId }: GiveawayManagerProps) => {
             )}
           </div>
 
+          {/* Wheel settings */}
+          <div className="space-y-4 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Колесо фортуны для участников
+              </Label>
+              <Switch checked={hasWheel} onCheckedChange={setHasWheel} />
+            </div>
+
+            {hasWheel && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Участники смогут крутить колесо после регистрации
+                </p>
+                
+                {wheelSegments.map((segment, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-background rounded-lg border">
+                    <input
+                      type="color"
+                      value={segment.color}
+                      onChange={(e) => updateWheelSegment(index, "color", e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer"
+                    />
+                    <Input
+                      value={segment.label}
+                      onChange={(e) => updateWheelSegment(index, "label", e.target.value)}
+                      placeholder="Название сегмента"
+                      className="flex-1"
+                    />
+                    <Select
+                      value={segment.rewardType}
+                      onValueChange={(v) => updateWheelSegment(index, "rewardType", v)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="balance">Баланс</SelectItem>
+                        <SelectItem value="freebet">Фрибет</SelectItem>
+                        <SelectItem value="xp">XP</SelectItem>
+                        <SelectItem value="wheel">Колёса</SelectItem>
+                        <SelectItem value="nothing">Ничего</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      value={segment.rewardAmount || ""}
+                      onChange={(e) => updateWheelSegment(index, "rewardAmount", parseFloat(e.target.value) || 0)}
+                      placeholder="Сумма"
+                      className="w-20"
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeWheelSegment(index)}
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addWheelSegment}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить сегмент
+                </Button>
+
+                {hasWheel && wheelSegments.length < 2 && (
+                  <p className="text-sm text-amber-500">Минимум 2 сегмента для колеса</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <Button
             onClick={() => createMutation.mutate()}
             disabled={
@@ -460,7 +582,8 @@ export const GiveawayManager = ({ adminId }: GiveawayManagerProps) => {
               !prizeAmount ||
               createMutation.isPending ||
               ((giveawayMode === "random" || giveawayMode === "achievement") && !(Number(endDurationValue) > 0)) ||
-              (giveawayMode === "achievement" && achievementType === "most_wins_game" && !achievementGame)
+              (giveawayMode === "achievement" && achievementType === "most_wins_game" && !achievementGame) ||
+              (hasWheel && wheelSegments.length < 2)
             }
             className="w-full"
           >
