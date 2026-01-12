@@ -35,6 +35,7 @@ import { EmailAccountManager } from "@/components/admin/EmailAccountManager";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BettingTournamentManager } from "@/components/admin/BettingTournamentManager";
 import { BulkDataImport } from "@/components/admin/BulkDataImport";
+import { BettingManagementSection } from "@/components/admin/BettingManagementSection";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -457,6 +458,9 @@ const Admin = () => {
                 <SkinManager />
               </AccordionContent>
             </AccordionItem>
+
+            {/* Управление ставками */}
+            <BettingManagementSection adminId={user?.id || ""} />
 
             {/* Турниры ставок */}
             <AccordionItem value="betting-tournaments" className="border border-amber-500/30 rounded-lg bg-card/50">
