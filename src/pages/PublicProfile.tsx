@@ -43,7 +43,7 @@ const PublicProfile = () => {
       
       const { data: fullProfile } = await supabase
         .from("profiles")
-        .select("profile_background, email_verified_at")
+        .select("profile_background, email_verified_at, avatar_url")
         .eq("id", publicData.id)
         .single();
       
@@ -56,6 +56,7 @@ const PublicProfile = () => {
         ...publicData,
         profile_background: fullProfile?.profile_background || "none",
         email_verified_at: fullProfile?.email_verified_at || null,
+        avatar_url: fullProfile?.avatar_url || null,
         user_roles: roles || [],
       };
     },
@@ -182,11 +183,19 @@ const PublicProfile = () => {
               {/* Avatar & Username */}
               <div className="flex items-center gap-4 mb-6">
                 <div className={cn(
-                  "w-20 h-20 rounded-2xl flex items-center justify-center text-4xl",
+                  "w-20 h-20 rounded-2xl flex items-center justify-center text-4xl overflow-hidden",
                   "bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20",
                   "border-2 border-primary/30 shadow-lg"
                 )}>
-                  {isAdmin ? "👑" : isVip ? "💎" : "🎮"}
+                  {profile.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    isAdmin ? "👑" : isVip ? "💎" : profile.username?.charAt(0)?.toUpperCase() || "🎮"
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <VipUsername 

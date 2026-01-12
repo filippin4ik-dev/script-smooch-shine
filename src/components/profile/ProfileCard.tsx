@@ -42,7 +42,7 @@ export const ProfileCard = ({ profile, isAdmin, onUpdateUsername, isUpdating, on
   };
 
   const handleAvatarClick = () => {
-    if (isAdmin && fileInputRef.current) {
+    if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
@@ -117,7 +117,7 @@ export const ProfileCard = ({ profile, isAdmin, onUpdateUsername, isUpdating, on
                 "bg-gradient-to-br from-primary/30 to-purple-500/30",
                 "border-2 border-primary/50",
                 "shadow-[0_0_20px_hsl(var(--primary)/0.3)]",
-                isAdmin && "cursor-pointer group"
+                "cursor-pointer group"
               )}
               onClick={handleAvatarClick}
             >
@@ -131,16 +131,14 @@ export const ProfileCard = ({ profile, isAdmin, onUpdateUsername, isUpdating, on
                 profile?.username?.charAt(0)?.toUpperCase() || "?"
               )}
               
-              {/* Upload overlay for admin */}
-              {isAdmin && (
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  {isUploadingAvatar ? (
-                    <Loader2 className="w-6 h-6 text-white animate-spin" />
-                  ) : (
-                    <Camera className="w-6 h-6 text-white" />
-                  )}
-                </div>
-              )}
+              {/* Upload overlay */}
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </div>
               
               <input
                 ref={fileInputRef}
