@@ -23,7 +23,7 @@ import sportsBettingImg from "@/assets/sports-betting-new.webp";
 import cryptoImg from "@/assets/crypto-trading.webp";
 import horseRacingImg from "@/assets/horse-racing-new.webp";
 import chickenRoadImg from "@/assets/chicken-road-new.webp";
-import casinoLogo from "/casino-logo.png";
+import casinoLogo from "/plitebet-logo.png";
 import { PromoBanner } from "@/components/PromoBanner";
 import { LiveStats } from "@/components/LiveStats";
 import { TopWinners } from "@/components/TopWinners";
