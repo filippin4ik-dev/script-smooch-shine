@@ -9,6 +9,7 @@ import { AdminProfileBadge } from "@/components/AdminProfileBadge";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { AnimatedProfileBackground } from "@/components/AnimatedProfileBackground";
 import { ProfileBackground } from "@/components/ProfileBackgroundPicker";
+import { ProfileAchievements } from "@/components/profile/ProfileAchievements";
 import { 
   Copy, 
   Trophy, 
@@ -265,6 +266,9 @@ const PublicProfile = () => {
               <div className="text-xs text-muted-foreground">Винрейт</div>
             </div>
           </div>
+
+          {/* Achievements */}
+          {profile?.id && <ProfileAchievements userId={profile.id} />}
 
           {/* Betting Stats */}
           {betsStats && betsStats.total > 0 && (

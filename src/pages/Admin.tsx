@@ -36,6 +36,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { BettingTournamentManager } from "@/components/admin/BettingTournamentManager";
 import { BulkDataImport } from "@/components/admin/BulkDataImport";
 import { BettingManagementSection } from "@/components/admin/BettingManagementSection";
+import { AchievementGiver } from "@/components/admin/AchievementGiver";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -395,6 +396,16 @@ const Admin = () => {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 <XpManager adminId={user!.id} />
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Достижения */}
+            <AccordionItem value="achievements" className="border border-yellow-500/30 rounded-lg bg-gradient-to-r from-yellow-500/5 to-orange-500/5">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <span className="text-lg font-bold">🏆 Выдача достижений</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <AchievementGiver />
               </AccordionContent>
             </AccordionItem>
 
