@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Clock, Users, Medal, Target, Flame, Crown, Award, Star, ChevronRight, TrendingUp, Zap, Sparkles } from "lucide-react";
+import { Trophy, Clock, Target, Flame, Crown, Star, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
 import { VipUsername } from "@/components/VipUsername";
+import { TournamentLeaderboard } from "@/components/betting/TournamentLeaderboard";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -118,24 +119,6 @@ export const BettingTournamentsSection = ({ userId }: BettingTournamentsSectionP
     }
   };
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />;
-    if (rank === 2) return <Medal className="w-5 h-5 text-slate-300" />;
-    if (rank === 3) return <Award className="w-5 h-5 text-amber-600" />;
-    return null;
-  };
-
-  const getRankBg = (rank: number, isCurrentUser: boolean) => {
-    if (isCurrentUser) return "bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/50";
-    if (rank === 1) return "bg-gradient-to-r from-yellow-500/20 via-amber-500/10 to-transparent border-yellow-500/40";
-    if (rank === 2) return "bg-gradient-to-r from-slate-400/20 via-slate-400/10 to-transparent border-slate-400/40";
-    if (rank === 3) return "bg-gradient-to-r from-amber-600/20 via-amber-600/10 to-transparent border-amber-600/40";
-    return "bg-card/60 border-border/40 hover:bg-card/80";
-  };
-
-  const myRank = leaderboard?.find((l: any) => l.user_id === userId);
-  const myRankIndex = leaderboard?.findIndex((l: any) => l.user_id === userId);
-
   if (activeTournaments.length === 0 && finishedTournaments.length === 0) {
     return null;
   }
@@ -251,184 +234,16 @@ export const BettingTournamentsSection = ({ userId }: BettingTournamentsSectionP
 
             {/* Leaderboard */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-amber-400" />
-                  <span className="font-semibold text-foreground">Лидерборд</span>
-                </div>
-                {myRank && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/15 border border-primary/30">
-                    <Zap className="w-3 h-3 text-primary" />
-                    <span className="text-xs font-bold text-primary">Вы #{myRank.rank}</span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span className="font-semibold text-foreground">Таблица лидеров</span>
               </div>
 
-              {leaderboardLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 rounded-xl bg-muted/30 animate-pulse" />
-                  ))}
-                </div>
-              ) : leaderboard && leaderboard.length > 0 ? (
-                <div className="space-y-2">
-                  {/* Top 3 Podium */}
-                  {leaderboard.length >= 3 && (
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      {/* 2nd Place */}
-                      <div className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-b from-slate-400/15 to-transparent border border-slate-400/30 order-1">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 flex items-center justify-center mb-2 shadow-lg">
-                          <Medal className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xs font-bold text-slate-300 mb-1">2nd</div>
-                          <div className="text-xs truncate max-w-[70px]">
-                            <VipUsername
-                              username={leaderboard[1]?.username || "—"}
-                              isVip={leaderboard[1]?.is_vip}
-                              level={leaderboard[1]?.level}
-                              gradientColor={leaderboard[1]?.gradient_color}
-                            />
-                          </div>
-                          <div className="text-sm font-bold text-slate-300 mt-1">
-                            {Number(leaderboard[1]?.total_wins || 0).toFixed(0)}₽
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 1st Place */}
-                      <div className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-b from-yellow-500/20 to-amber-500/10 border border-yellow-500/40 order-0 -mt-2 scale-105">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 flex items-center justify-center mb-2 shadow-lg shadow-yellow-500/30">
-                          <Crown className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xs font-bold text-yellow-400 mb-1">1st</div>
-                          <div className="text-xs truncate max-w-[70px]">
-                            <VipUsername
-                              username={leaderboard[0]?.username || "—"}
-                              isVip={leaderboard[0]?.is_vip}
-                              level={leaderboard[0]?.level}
-                              gradientColor={leaderboard[0]?.gradient_color}
-                            />
-                          </div>
-                          <div className="text-sm font-bold text-yellow-400 mt-1">
-                            {Number(leaderboard[0]?.total_wins || 0).toFixed(0)}₽
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 3rd Place */}
-                      <div className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-b from-amber-600/15 to-transparent border border-amber-600/30 order-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center mb-2 shadow-lg">
-                          <Award className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xs font-bold text-amber-600 mb-1">3rd</div>
-                          <div className="text-xs truncate max-w-[70px]">
-                            <VipUsername
-                              username={leaderboard[2]?.username || "—"}
-                              isVip={leaderboard[2]?.is_vip}
-                              level={leaderboard[2]?.level}
-                              gradientColor={leaderboard[2]?.gradient_color}
-                            />
-                          </div>
-                          <div className="text-sm font-bold text-amber-600 mt-1">
-                            {Number(leaderboard[2]?.total_wins || 0).toFixed(0)}₽
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Rest of leaderboard */}
-                  {leaderboard.slice(3, 10).map((player: any) => {
-                    const isCurrentUser = player.user_id === userId;
-                    const rank = Number(player.rank);
-                    
-                    return (
-                      <div
-                        key={player.user_id}
-                        className={cn(
-                          "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
-                          getRankBg(rank, isCurrentUser)
-                        )}
-                      >
-                        {/* Rank */}
-                        <div className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
-                          isCurrentUser ? "bg-primary/20 text-primary" : "bg-muted/60 text-muted-foreground"
-                        )}>
-                          #{rank}
-                        </div>
-
-                        {/* User info */}
-                        <div className="flex-1 min-w-0">
-                          <VipUsername
-                            username={player.username}
-                            isVip={player.is_vip}
-                            level={player.level}
-                            gradientColor={player.gradient_color}
-                          />
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {player.total_bets} ставок
-                          </div>
-                        </div>
-
-                        {/* Wins */}
-                        <div className="text-right">
-                          <div className={cn(
-                            "font-bold",
-                            isCurrentUser ? "text-primary" : "text-green-500"
-                          )}>
-                            {Number(player.total_wins).toFixed(0)}₽
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Show current user if not in top 10 */}
-                  {userId && myRankIndex !== undefined && myRankIndex >= 10 && myRank && (
-                    <>
-                      <div className="flex items-center justify-center gap-2 py-2">
-                        <div className="w-8 border-t border-dashed border-border/50" />
-                        <span className="text-xs text-muted-foreground">•••</span>
-                        <div className="w-8 border-t border-dashed border-border/50" />
-                      </div>
-                      <div className={cn(
-                        "flex items-center gap-3 p-3 rounded-xl border",
-                        getRankBg(Number(myRank.rank), true)
-                      )}>
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-primary/20 text-primary">
-                          #{myRank.rank}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <VipUsername
-                            username={myRank.username}
-                            isVip={myRank.is_vip}
-                            level={myRank.level}
-                            gradientColor={myRank.gradient_color}
-                          />
-                          <div className="text-xs text-muted-foreground">{myRank.total_bets} ставок</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-primary">
-                            {Number(myRank.total_wins).toFixed(0)}₽
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 rounded-xl bg-muted/20 border border-dashed border-border/50">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-muted/40 mb-3">
-                    <Users className="w-7 h-7 text-muted-foreground/50" />
-                  </div>
-                  <p className="font-medium text-muted-foreground">Пока нет участников</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">Сделай ставку первым!</p>
-                </div>
-              )}
+              <TournamentLeaderboard
+                leaderboard={leaderboard || []}
+                currentUserId={userId}
+                isLoading={leaderboardLoading}
+              />
             </div>
           </div>
         </div>
