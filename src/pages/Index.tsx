@@ -25,13 +25,11 @@ import cryptoImg from "@/assets/crypto-trading.webp";
 import horseRacingImg from "@/assets/horse-racing-new.webp";
 import chickenRoadImg from "@/assets/chicken-road-new.webp";
 import casinoLogo from "/casino-logo.png";
-import { FreeSpinsReward } from "@/components/FreeSpinsReward";
 import { PromoBanner } from "@/components/PromoBanner";
 import { LiveStats } from "@/components/LiveStats";
 import { TopWinners } from "@/components/TopWinners";
 import { LiveWinners } from "@/components/LiveWinners";
 import { TelegramPromo } from "@/components/TelegramPromo";
-import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { DiceGame } from "@/components/games/DiceGame";
 import { MinesGame } from "@/components/games/MinesGame";
 import { TowersGame } from "@/components/games/TowersGame";
@@ -55,12 +53,14 @@ import { useProfile } from "@/hooks/useProfile";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useUnreadSupport } from "@/hooks/useUnreadSupport";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-import { BalanceDisplay } from "@/components/BalanceDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { Home, Trophy, MessageCircle, Settings, X, Wallet, Gift } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MobileHeader } from "@/components/MobileHeader";
+import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { GamesSection } from "@/components/GamesSection";
+import { FloatingOrbs } from "@/components/FloatingOrbs";
+import { ArrowLeft } from "lucide-react";
 
 type GameType = "dice" | "mines" | "towers" | "hilo" | "roulette" | "blackjack" | "crash" | "slots" | "dogs-house-slots" | "cases" | "balloon" | "penalty" | "crypto" | "horse-racing" | "chicken-road" | "plinko" | "upgrader" | null;
 
@@ -232,10 +232,12 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-dark">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-20 w-20 border-4 border-t-primary border-r-secondary border-b-transparent border-l-transparent shadow-neon-blue"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping"></div>
+      <div className="flex min-h-screen items-center justify-center">
+        <FloatingOrbs />
+        <div className="relative z-10">
+          <div className="w-20 h-20 rounded-2xl glass-card flex items-center justify-center animate-pulse">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary animate-spin-slow" />
+          </div>
         </div>
       </div>
     );
@@ -243,12 +245,19 @@ const Index = () => {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-dark flex">
-        {/* Sidebar - Desktop only */}
-        <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-card/80 via-card/60 to-card/40 backdrop-blur-xl border-r border-primary/30 sticky top-0 h-screen shadow-xl">
-          <div className="p-6 border-b border-primary/30 bg-gradient-to-r from-primary/5 to-purple-500/5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="relative">
+      <div className="min-h-screen flex relative">
+        <FloatingOrbs />
+        
+        {/* Desktop Sidebar */}
+        <DesktopSidebar
+          userId={user?.id}
+          profile={profile}
+          isAdmin={isAdmin}
+          unreadCount={unreadCount}
+          unreadSupport={unreadSupport}
+          unreadNotifications={unreadNotifications}
+          casinoLogo={casinoLogo}
+          onClose={handleClose}
                 <img src={casinoLogo} alt="Golden Crown Casino" className="w-14 h-14 rounded-xl shadow-glow" />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse border-2 border-background" />
               </div>
