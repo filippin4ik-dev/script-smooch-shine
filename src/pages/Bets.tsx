@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { MatchDetailsDialog } from "@/components/betting/MatchDetailsDialog";
 import { ParlayCheckoutDialog } from "@/components/betting/ParlayCheckoutDialog";
+import { EmailRequiredDialog } from "@/components/betting/EmailRequiredDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { Trophy, Flame, Clock, Target, ChevronRight, Zap } from "lucide-react";
@@ -28,7 +29,11 @@ const Bets = () => {
   }>>([]);
   const [matchFilter, setMatchFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
   const [showParlayCheckout, setShowParlayCheckout] = useState(false);
+  const [showEmailRequired, setShowEmailRequired] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Check if user has verified email
+  const hasVerifiedEmail = !!profile?.email_verified_at;
 
   // Realtime подписка на изменения матчей
   useEffect(() => {
@@ -180,7 +185,13 @@ const Bets = () => {
             <Card
               key={match.id}
               className="overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 border-border/30 bg-card/80 backdrop-blur-sm group"
-              onClick={() => setSelectedMatch(match)}
+              onClick={() => {
+                if (!hasVerifiedEmail) {
+                  setShowEmailRequired(true);
+                  return;
+                }
+                setSelectedMatch(match);
+              }}
             >
               <CardContent className="p-0">
                 {/* Match Header */}
@@ -369,7 +380,16 @@ const Bets = () => {
                   </span>
                 </div>
 
-                <Button className="w-full" onClick={() => setShowParlayCheckout(true)}>
+                <Button 
+                  className="w-full" 
+                  onClick={() => {
+                    if (!hasVerifiedEmail) {
+                      setShowEmailRequired(true);
+                      return;
+                    }
+                    setShowParlayCheckout(true);
+                  }}
+                >
                   Оформить экспресс
                 </Button>
               </CardContent>
@@ -392,6 +412,12 @@ const Bets = () => {
             }}
           />
         )}
+
+        {/* Email Required Dialog */}
+        <EmailRequiredDialog 
+          open={showEmailRequired} 
+          onOpenChange={setShowEmailRequired} 
+        />
       </div>
     </AuthGuard>
   );
