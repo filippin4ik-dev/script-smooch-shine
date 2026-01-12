@@ -4226,6 +4226,10 @@ export type Database = {
         Args: { _session_id: string; _user_id: string }
         Returns: Json
       }
+      recalculate_tournament_results: {
+        Args: { _tournament_id: string }
+        Returns: undefined
+      }
       refund_bet: { Args: { _bet_id: string }; Returns: Json }
       refund_parlay_bet: { Args: { _parlay_bet_id: string }; Returns: Json }
       refund_parlay_item: { Args: { _parlay_item_id: string }; Returns: Json }
