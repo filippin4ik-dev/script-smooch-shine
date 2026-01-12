@@ -62,39 +62,29 @@ export const MatchScoreForm = ({ match, adminId, onClose }: MatchScoreFormProps)
     setIsLoading(true);
 
     try {
-      // Собираем счета по картам
+      // Собираем счета по картам в формате ожидаемом SQL функцией
       const mapScores: any = {};
       
       if (isEsports) {
         if (formData.map1_team1_score && formData.map1_team2_score) {
-          mapScores.map1 = {
-            team1: parseInt(formData.map1_team1_score),
-            team2: parseInt(formData.map1_team2_score)
-          };
+          mapScores.map1_team1 = parseInt(formData.map1_team1_score);
+          mapScores.map1_team2 = parseInt(formData.map1_team2_score);
         }
         if (formData.map2_team1_score && formData.map2_team2_score) {
-          mapScores.map2 = {
-            team1: parseInt(formData.map2_team1_score),
-            team2: parseInt(formData.map2_team2_score)
-          };
+          mapScores.map2_team1 = parseInt(formData.map2_team1_score);
+          mapScores.map2_team2 = parseInt(formData.map2_team2_score);
         }
         if (hasMap3 && formData.map3_team1_score && formData.map3_team2_score) {
-          mapScores.map3 = {
-            team1: parseInt(formData.map3_team1_score),
-            team2: parseInt(formData.map3_team2_score)
-          };
+          mapScores.map3_team1 = parseInt(formData.map3_team1_score);
+          mapScores.map3_team2 = parseInt(formData.map3_team2_score);
         }
         if (hasMap4 && formData.map4_team1_score && formData.map4_team2_score) {
-          mapScores.map4 = {
-            team1: parseInt(formData.map4_team1_score),
-            team2: parseInt(formData.map4_team2_score)
-          };
+          mapScores.map4_team1 = parseInt(formData.map4_team1_score);
+          mapScores.map4_team2 = parseInt(formData.map4_team2_score);
         }
         if (hasMap5 && formData.map5_team1_score && formData.map5_team2_score) {
-          mapScores.map5 = {
-            team1: parseInt(formData.map5_team1_score),
-            team2: parseInt(formData.map5_team2_score)
-          };
+          mapScores.map5_team1 = parseInt(formData.map5_team1_score);
+          mapScores.map5_team2 = parseInt(formData.map5_team2_score);
         }
       }
 
