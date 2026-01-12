@@ -180,7 +180,28 @@ export const BettingManagementSection = ({ adminId }: BettingManagementSectionPr
                 <MapBettingControl match={match} />
 
                 {/* Кнопки управления */}
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {match.status === "upcoming" && (
+                    <Button 
+                      size="sm" 
+                      className="bg-red-500 hover:bg-red-600"
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from("matches")
+                          .update({ status: "live" })
+                          .eq("id", match.id);
+                        if (error) {
+                          toast.error("Ошибка перевода в LIVE");
+                        } else {
+                          queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+                          toast.success("Матч переведен в LIVE");
+                        }
+                      }}
+                    >
+                      🔴 Начать LIVE
+                    </Button>
+                  )}
+                  
                   {match.status !== "finished" && (
                     <>
                       {finishingMatch === match.id ? (
@@ -195,7 +216,7 @@ export const BettingManagementSection = ({ adminId }: BettingManagementSectionPr
                           variant="default"
                           onClick={() => setFinishingMatch(match.id)}
                         >
-                          Завершить матч
+                          ✅ Завершить матч
                         </Button>
                       )}
                     </>
