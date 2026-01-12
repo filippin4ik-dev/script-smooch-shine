@@ -3235,6 +3235,10 @@ export type Database = {
         Args: { _bet_id: string; _is_parlay?: boolean; _status: string }
         Returns: Json
       }
+      admin_set_match_live: {
+        Args: { _admin_id: string; _match_id: string }
+        Returns: Json
+      }
       admin_set_parlay_item_status: {
         Args: { _item_id: string; _status: string }
         Returns: Json
