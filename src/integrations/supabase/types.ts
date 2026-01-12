@@ -3591,6 +3591,10 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_admin_achievement: {
+        Args: { _achievement_id: string; _admin_id: string }
+        Returns: boolean
+      }
       delete_user_profile: { Args: { _user_id: string }; Returns: undefined }
       enforce_rate_limit: {
         Args: {
@@ -4011,6 +4015,18 @@ export type Database = {
           message: string
           success: boolean
         }[]
+      }
+      grant_admin_achievement: {
+        Args: {
+          _description: string
+          _granter_id: string
+          _icon?: string
+          _place?: number
+          _rarity?: string
+          _title: string
+          _user_id: string
+        }
+        Returns: string
       }
       guess_hilo: {
         Args: { _guess: string; _session_id: string; _user_id: string }
