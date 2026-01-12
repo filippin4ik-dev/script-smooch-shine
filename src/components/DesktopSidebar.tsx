@@ -12,7 +12,6 @@ import {
   HeadphonesIcon,
   Settings,
   X,
-  Crown,
   Wallet,
   ArrowDownToLine,
   Trophy
@@ -65,12 +64,11 @@ export const DesktopSidebar = ({
             <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full border-2 border-background animate-pulse" />
           </div>
           <div>
-            <h1 className="text-2xl font-black gradient-text-gold flex items-center gap-2">
-              <Crown className="w-5 h-5 text-primary" />
-              Golden Crown
+            <h1 className="text-2xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
+              PliteBet
             </h1>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">
-              Premium Casino
+              Premium Betting
             </p>
           </div>
         </div>

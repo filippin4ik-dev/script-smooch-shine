@@ -11,7 +11,6 @@ import {
   HeadphonesIcon,
   Settings,
   X,
-  Crown,
   Trophy
 } from "lucide-react";
 
@@ -91,12 +90,11 @@ export const MobileHeader = ({
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full border-2 border-background animate-pulse" />
             </div>
             <div>
-              <h1 className="text-lg font-black gradient-text-gold flex items-center gap-1.5">
-                <Crown className="w-4 h-4 text-primary" />
-                Golden Crown
+              <h1 className="text-lg font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
+                PliteBet
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                Premium Casino
+                Premium Betting
               </p>
             </div>
           </div>
