@@ -993,6 +993,58 @@ export type Database = {
           },
         ]
       }
+      giveaway_wheel_spins: {
+        Row: {
+          created_at: string
+          giveaway_id: string
+          id: string
+          result: string
+          reward_amount: number | null
+          reward_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          giveaway_id: string
+          id?: string
+          result: string
+          reward_amount?: number | null
+          reward_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          giveaway_id?: string
+          id?: string
+          result?: string
+          reward_amount?: number | null
+          reward_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giveaway_wheel_spins_giveaway_id_fkey"
+            columns: ["giveaway_id"]
+            isOneToOne: false
+            referencedRelation: "giveaways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaway_wheel_spins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaway_wheel_spins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       giveaways: {
         Row: {
           achievement_game: string | null

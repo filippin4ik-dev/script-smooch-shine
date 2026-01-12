@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthGuard, useAuth } from "@/components/AuthGuard";
 import { useProfile } from "@/hooks/useProfile";
 import { VipUsername, GradientColor } from "@/components/VipUsername";
-import { BuffWheelRoulette } from "@/components/BuffWheelRoulette";
+import { GiveawayWheel } from "@/components/GiveawayWheel";
 import { TasksList } from "@/components/TasksList";
 import { BettingTournamentsSection } from "@/components/BettingTournamentsSection";
 // GiveawayWinStreak temporarily removed
@@ -534,10 +534,6 @@ const Giveaways = () => {
             <TasksList userId={user.id} />
           )}
 
-          {/* Buff Wheel Roulette */}
-          {user?.id && (
-            <BuffWheelRoulette userId={user.id} />
-          )}
 
           {/* Betting Tournaments Section */}
           <BettingTournamentsSection userId={user?.id} />
@@ -830,6 +826,24 @@ const Giveaways = () => {
                         )}
                       </div>
                     </div>
+                  )}
+
+                  {/* Giveaway Wheel for participants */}
+                  {selectedGiveaway.has_wheel && 
+                   selectedGiveaway.wheel_segments && 
+                   Array.isArray(selectedGiveaway.wheel_segments) &&
+                   selectedGiveaway.wheel_segments.length >= 2 &&
+                   isParticipating(selectedGiveaway.id) &&
+                   user?.id && (
+                    <GiveawayWheel
+                      userId={user.id}
+                      giveawayId={selectedGiveaway.id}
+                      segments={selectedGiveaway.wheel_segments.map((s: any) => ({
+                        key: s.key,
+                        label: s.label,
+                        color: s.color,
+                      }))}
+                    />
                   )}
 
                   {/* Join button */}
