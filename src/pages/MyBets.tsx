@@ -14,7 +14,7 @@ const MyBets = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Realtime subscription for bet updates
+  // Realtime subscription for bet and match updates
   useEffect(() => {
     if (!user?.id) return;
 
@@ -27,6 +27,11 @@ const MyBets = () => {
         queryClient.invalidateQueries({ queryKey: ["parlay-bets", user.id] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'parlay_bet_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["parlay-bets", user.id] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        // Обновляем ставки когда меняется статус матча
+        queryClient.invalidateQueries({ queryKey: ["user-bets", user.id] });
         queryClient.invalidateQueries({ queryKey: ["parlay-bets", user.id] });
       })
       .subscribe();
