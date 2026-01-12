@@ -317,14 +317,6 @@ const Index = () => {
               <span>Профиль</span>
             </Button>
             
-            <Button
-              onClick={() => navigate("/betting-tournaments")}
-              variant="ghost"
-              className="w-full justify-start gap-3 hover:bg-amber-500/10 hover:text-amber-500 border border-transparent hover:border-amber-500/30"
-            >
-              <Trophy className="w-5 h-5" />
-              <span>Турниры</span>
-            </Button>
 
             <Button
               onClick={() => navigate("/giveaways")}
@@ -460,9 +452,6 @@ const Index = () => {
                 <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 scroll-smooth" id="nav-buttons">
                   <Button onClick={() => navigate("/profile")} size="sm" variant="outline" className="whitespace-nowrap border-primary/30 hover:bg-primary/10 nav-button" data-nav="profile">
                     👤 Профиль
-                  </Button>
-                  <Button onClick={() => navigate("/betting-tournaments")} size="sm" variant="outline" className="whitespace-nowrap border-amber-500/30 text-amber-500 hover:bg-amber-500/10 nav-button" data-nav="tournaments">
-                    🏆 Турниры
                   </Button>
                   <Button onClick={() => navigate("/giveaways")} size="sm" variant="outline" className="whitespace-nowrap border-primary/30 hover:bg-primary/10 nav-button" data-nav="giveaways">
                     🎁 Розыгрыши
