@@ -145,6 +145,74 @@ export type Database = {
           },
         ]
       }
+      admin_achievements: {
+        Row: {
+          created_at: string
+          description: string
+          granted_at: string
+          granted_by: string | null
+          icon: string
+          id: string
+          place: number | null
+          rarity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          granted_at?: string
+          granted_by?: string | null
+          icon?: string
+          id?: string
+          place?: number | null
+          rarity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          granted_at?: string
+          granted_by?: string | null
+          icon?: string
+          id?: string
+          place?: number | null
+          rarity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_achievements_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_achievements_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       betting_tournament_results: {
         Row: {
           biggest_win: number

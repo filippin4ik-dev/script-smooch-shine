@@ -24,6 +24,7 @@ import { GameSearchByNumber } from "@/components/profile/GameSearchByNumber";
 import { LevelCard } from "@/components/profile/LevelCard";
 import { ProfileNavButtons } from "@/components/profile/ProfileNavButtons";
 import { EmailVerification } from "@/components/profile/EmailVerification";
+import { ProfileAchievements } from "@/components/profile/ProfileAchievements";
 
 // Icons
 import { 
@@ -309,10 +310,14 @@ const Profile = () => {
           />
 
           {/* Level Card */}
+          {/* Achievements */}
+          {user?.id && <ProfileAchievements userId={user.id} />}
+
+          {/* Level Card */}
           {user?.id && (
             <LevelCard 
               userId={user.id} 
-              xp={profile?.xp || 0} 
+              xp={profile?.xp || 0}
               level={profile?.level || 1} 
             />
           )}
