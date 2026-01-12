@@ -89,17 +89,18 @@ export const AchievementGiver = () => {
 
       if (!user?.id) throw new Error("Не авторизован");
 
-      const { error } = await supabase.from("admin_achievements").insert({
-        user_id: selectedUserId,
-        title,
-        description,
-        icon,
-        rarity,
-        place,
-        granted_by: user.id,
+      const { data, error } = await supabase.rpc("grant_admin_achievement", {
+        _user_id: selectedUserId,
+        _granter_id: user.id,
+        _title: title,
+        _description: description,
+        _icon: icon,
+        _rarity: rarity,
+        _place: place,
       });
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast.success("✅ Ачивка выдана!");
@@ -116,10 +117,12 @@ export const AchievementGiver = () => {
 
   const deleteAchievement = useMutation({
     mutationFn: async (achievementId: string) => {
-      const { error } = await supabase
-        .from("admin_achievements")
-        .delete()
-        .eq("id", achievementId);
+      if (!user?.id) throw new Error("Не авторизован");
+      
+      const { error } = await supabase.rpc("delete_admin_achievement", {
+        _achievement_id: achievementId,
+        _admin_id: user.id,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
