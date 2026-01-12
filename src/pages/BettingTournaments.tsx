@@ -2,11 +2,11 @@ import { AuthGuard, useAuth } from "@/components/AuthGuard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Clock, Users, Medal, ArrowLeft, Flame, Target } from "lucide-react";
+import { Trophy, Clock, ArrowLeft, Flame, Target, Star, TrendingUp, Sparkles } from "lucide-react";
 import { VipUsername } from "@/components/VipUsername";
+import { TournamentLeaderboard } from "@/components/betting/TournamentLeaderboard";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const BettingTournaments = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<Record<string, string>>({});
 
   // Fetch tournaments
   const { data: tournaments } = useQuery({
@@ -30,7 +31,7 @@ const BettingTournaments = () => {
   });
 
   // Fetch leaderboard for selected tournament
-  const { data: leaderboard } = useQuery({
+  const { data: leaderboard, isLoading: leaderboardLoading } = useQuery({
     queryKey: ["betting-tournament-leaderboard", selectedTournament],
     queryFn: async () => {
       if (!selectedTournament) return [];
@@ -61,6 +62,52 @@ const BettingTournaments = () => {
     };
   }, [queryClient, selectedTournament]);
 
+  // Timer update
+  useEffect(() => {
+    const updateTimers = () => {
+      const newTimeLeft: Record<string, string> = {};
+      tournaments?.forEach((t) => {
+        if (t.end_at && t.status === "active") {
+          const end = new Date(t.end_at);
+          const now = new Date();
+          const diff = end.getTime() - now.getTime();
+          
+          if (diff <= 0) {
+            newTimeLeft[t.id] = "Завершается...";
+          } else {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+              newTimeLeft[t.id] = `${days}д ${hours}ч`;
+            } else if (hours > 0) {
+              newTimeLeft[t.id] = `${hours}ч ${minutes}м`;
+            } else {
+              newTimeLeft[t.id] = `${minutes}м ${seconds}с`;
+            }
+          }
+        }
+      });
+      setTimeLeft(newTimeLeft);
+    };
+
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
+    return () => clearInterval(interval);
+  }, [tournaments]);
+
+  // Auto-select first active tournament
+  useEffect(() => {
+    if (!selectedTournament && tournaments?.some(t => t.status === "active")) {
+      const firstActive = tournaments.find(t => t.status === "active");
+      if (firstActive) {
+        setSelectedTournament(firstActive.id);
+      }
+    }
+  }, [tournaments, selectedTournament]);
+
   const activeTournaments = tournaments?.filter((t) => t.status === "active") || [];
   const finishedTournaments = tournaments?.filter((t) => t.status === "finished") || [];
 
@@ -74,33 +121,7 @@ const BettingTournaments = () => {
     }
   };
 
-  const getTimeRemaining = (endAt: string | null) => {
-    if (!endAt) return "Без ограничения";
-    const end = new Date(endAt);
-    const now = new Date();
-    const diff = end.getTime() - now.getTime();
-    if (diff <= 0) return "Завершается...";
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}д ${hours % 24}ч`;
-    }
-    return `${hours}ч ${minutes}м`;
-  };
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1: return <Medal className="w-5 h-5 text-yellow-500" />;
-      case 2: return <Medal className="w-5 h-5 text-gray-400" />;
-      case 3: return <Medal className="w-5 h-5 text-amber-600" />;
-      default: return <span className="w-5 text-center text-muted-foreground font-bold">#{rank}</span>;
-    }
-  };
-
-  const myRank = leaderboard?.find((l: any) => l.user_id === user?.id);
+  const currentTournament = tournaments?.find(t => t.id === selectedTournament);
 
   return (
     <AuthGuard>
@@ -127,157 +148,148 @@ const BettingTournaments = () => {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-6 space-y-6">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-5">
           {/* Active tournaments */}
           {activeTournaments.length > 0 && (
-            <section className="space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+            <section className="space-y-3">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                 <Flame className="w-5 h-5 text-orange-500" />
                 Активные турниры
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {activeTournaments.map((tournament) => (
-                  <Card
-                    key={tournament.id}
-                    className={cn(
-                      "cursor-pointer transition-all duration-300 border-2",
-                      selectedTournament === tournament.id
-                        ? "border-amber-500 bg-amber-500/5 shadow-glow"
-                        : "border-border/50 hover:border-amber-500/50"
-                    )}
-                    onClick={() => setSelectedTournament(tournament.id)}
-                  >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{tournament.title}</CardTitle>
-                        <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                          <Target className="w-3 h-3 mr-1" /> Активен
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {tournament.description && (
-                        <p className="text-sm text-muted-foreground">{tournament.description}</p>
+              
+              {/* Tournament tabs for mobile */}
+              {activeTournaments.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3">
+                  {activeTournaments.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedTournament(t.id)}
+                      className={cn(
+                        "flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                        selectedTournament === t.id
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25"
+                          : "bg-card/60 text-muted-foreground border border-border/50 hover:border-amber-500/40"
                       )}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-card/50 rounded-lg p-3 text-center">
-                          <div className="text-xs text-muted-foreground mb-1">Приз</div>
-                          <div className="font-bold text-amber-500">
-                            {getPrizeLabel(tournament.prize_type, tournament.prize_amount)}
-                          </div>
+                    >
+                      {t.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Current tournament card */}
+              {currentTournament && (
+                <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/30 bg-gradient-to-br from-card via-card to-amber-500/5">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+                  
+                  <div className="relative p-4 space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Flame className="w-4 h-4 text-orange-500 shrink-0" />
+                          <h3 className="font-bold text-lg text-foreground truncate">{currentTournament.title}</h3>
                         </div>
-                        <div className="bg-card/50 rounded-lg p-3 text-center">
-                          <div className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
-                            <Clock className="w-3 h-3" /> До конца
-                          </div>
-                          <div className="font-bold text-primary">
-                            {getTimeRemaining(tournament.end_at)}
-                          </div>
+                        {currentTournament.description && (
+                          <p className="text-sm text-muted-foreground">{currentTournament.description}</p>
+                        )}
+                      </div>
+                      <Badge className="bg-green-500/20 text-green-500 border-green-500/30 shrink-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1.5" />
+                        LIVE
+                      </Badge>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="relative overflow-hidden rounded-xl p-3 bg-gradient-to-br from-amber-500/15 to-orange-500/5 border border-amber-500/25">
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-amber-400/80 mb-0.5">
+                          <Star className="w-3 h-3" />
+                          <span>Приз</span>
+                        </div>
+                        <div className="font-bold text-lg sm:text-xl text-amber-400">
+                          {getPrizeLabel(currentTournament.prize_type, currentTournament.prize_amount)}
                         </div>
                       </div>
-                      {tournament.min_bet_amount > 0 && (
-                        <div className="text-xs text-muted-foreground text-center">
-                          Мин. ставка: {tournament.min_bet_amount}₽
+
+                      <div className="relative overflow-hidden rounded-xl p-3 bg-muted/40 border border-border/40">
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mb-0.5">
+                          <Clock className="w-3 h-3" />
+                          <span>Осталось</span>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        <div className="font-bold text-lg sm:text-xl text-foreground font-mono">
+                          {timeLeft[currentTournament.id] || "∞"}
+                        </div>
+                      </div>
+
+                      <div className="relative overflow-hidden rounded-xl p-3 bg-muted/40 border border-border/40">
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mb-0.5">
+                          <TrendingUp className="w-3 h-3" />
+                          <span>Мин.</span>
+                        </div>
+                        <div className="font-bold text-lg sm:text-xl text-foreground">
+                          {currentTournament.min_bet_amount || 0}₽
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
           {/* Leaderboard */}
           {selectedTournament && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Таблица лидеров
-                </h2>
-                {myRank && (
-                  <Badge variant="outline" className="bg-primary/10 border-primary/30">
-                    Ваше место: #{myRank.rank}
-                  </Badge>
-                )}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg sm:text-xl font-bold">Таблица лидеров</h2>
               </div>
 
-              <Card className="border-border/50">
-                <CardContent className="p-0">
-                  {leaderboard && leaderboard.length > 0 ? (
-                    <div className="divide-y divide-border/30">
-                      {leaderboard.map((player: any, index: number) => (
-                        <div
-                          key={player.user_id}
-                          className={cn(
-                            "flex items-center gap-3 p-4 transition-colors",
-                            player.user_id === user?.id && "bg-primary/5",
-                            index < 3 && "bg-gradient-to-r from-amber-500/5 to-transparent"
-                          )}
-                        >
-                          <div className="w-8 flex justify-center">
-                            {getRankIcon(Number(player.rank))}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <VipUsername
-                              username={player.username}
-                              isVip={player.is_vip}
-                              level={player.level}
-                              gradientColor={player.gradient_color}
-                              className="font-semibold truncate"
-                            />
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-primary">{Number(player.total_wins).toFixed(0)}₽</div>
-                            <div className="text-xs text-muted-foreground">{player.total_bets} ставок</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-muted-foreground">
-                      <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>Пока нет участников</p>
-                      <p className="text-sm mt-1">Делайте ставки, чтобы попасть в турнир!</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="rounded-2xl border border-border/50 bg-card/40 p-3 sm:p-4">
+                <TournamentLeaderboard
+                  leaderboard={leaderboard || []}
+                  currentUserId={user?.id}
+                  isLoading={leaderboardLoading}
+                />
+              </div>
             </section>
           )}
 
           {/* Finished tournaments */}
           {finishedTournaments.length > 0 && (
-            <section className="space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-muted-foreground">
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-muted-foreground">
                 <Trophy className="w-5 h-5" />
                 Завершённые турниры
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {finishedTournaments.slice(0, 6).map((tournament) => (
-                  <Card key={tournament.id} className="border-border/30 bg-card/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold truncate">{tournament.title}</span>
-                        <Badge variant="secondary">Завершён</Badge>
+                  <div 
+                    key={tournament.id} 
+                    className="flex items-center gap-3 p-3 rounded-xl bg-card/40 border border-border/30"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                      <Trophy className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm truncate">{tournament.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {getPrizeLabel(tournament.prize_type, tournament.prize_amount)}
+                      </p>
+                    </div>
+                    {tournament.winner && (
+                      <div className="flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                        <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+                        <VipUsername
+                          username={(tournament.winner as any).username}
+                          isVip={(tournament.winner as any).is_vip}
+                          gradientColor={(tournament.winner as any).gradient_color}
+                          className="text-xs"
+                        />
                       </div>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Приз: {getPrizeLabel(tournament.prize_type, tournament.prize_amount)}
-                      </div>
-                      {tournament.winner && (
-                        <div className="flex items-center gap-2 p-2 bg-amber-500/10 rounded-lg">
-                          <Medal className="w-4 h-4 text-amber-500" />
-                          <VipUsername
-                            username={(tournament.winner as any).username}
-                            isVip={(tournament.winner as any).is_vip}
-                            level={(tournament.winner as any).level}
-                            gradientColor={(tournament.winner as any).gradient_color}
-                            className="text-sm"
-                          />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
                 ))}
               </div>
             </section>
@@ -285,29 +297,35 @@ const BettingTournaments = () => {
 
           {/* Empty state */}
           {tournaments?.length === 0 && (
-            <Card className="border-border/50">
-              <CardContent className="py-12 text-center">
-                <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-                <h3 className="text-xl font-bold mb-2">Пока нет турниров</h3>
-                <p className="text-muted-foreground">Следите за обновлениями!</p>
-              </CardContent>
-            </Card>
+            <div className="text-center py-12 rounded-2xl border border-border/50 bg-card/30">
+              <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="text-xl font-bold mb-2">Пока нет турниров</h3>
+              <p className="text-muted-foreground">Следите за обновлениями!</p>
+            </div>
           )}
 
           {/* Info card */}
-          <Card className="border-amber-500/30 bg-amber-500/5">
-            <CardContent className="p-4">
-              <h3 className="font-bold mb-2 flex items-center gap-2">
-                <Target className="w-5 h-5 text-amber-500" />
-                Как участвовать?
-              </h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Делайте выигрышные ставки в разделе "Ставки на спорт"</li>
-                <li>• Сумма ваших выигрышей автоматически засчитывается в турнир</li>
-                <li>• Игрок с наибольшей суммой выигрышей получает приз!</li>
-              </ul>
-            </CardContent>
-          </Card>
+          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent p-4">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-500/20 to-transparent rounded-full blur-2xl" />
+            <h3 className="font-bold mb-2 flex items-center gap-2 relative">
+              <Target className="w-5 h-5 text-amber-500" />
+              Как участвовать?
+            </h3>
+            <ul className="text-sm text-muted-foreground space-y-1.5 relative">
+              <li className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500/70 shrink-0 mt-0.5" />
+                Делайте выигрышные ставки в разделе "Ставки"
+              </li>
+              <li className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500/70 shrink-0 mt-0.5" />
+                Сумма выигрышей автоматически засчитывается
+              </li>
+              <li className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500/70 shrink-0 mt-0.5" />
+                Лидер по выигрышам получает приз!
+              </li>
+            </ul>
+          </div>
         </main>
       </div>
     </AuthGuard>
