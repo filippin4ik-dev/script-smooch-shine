@@ -117,9 +117,11 @@ const Admin = () => {
 
   const toggleBan = async (userId: string, currentBan: boolean, banReason?: string) => {
     try {
+      if (!user?.id) throw new Error("Не авторизован");
       const newBanStatus = !currentBan;
-      const { error } = await supabase.rpc("set_user_ban", {
+      const { error } = await supabase.rpc("admin_toggle_ban", {
         _user_id: userId,
+        _admin_id: user.id,
         _is_banned: newBanStatus,
         _ban_reason: newBanStatus ? (banReason || "Нарушение правил") : null,
       });
@@ -133,11 +135,16 @@ const Admin = () => {
 
   const toggleMute = async (userId: string, currentMute: boolean) => {
     try {
-      const muteSeconds = currentMute ? 0 : (muteInputs[userId] || 60);
-      const { error } = await supabase.rpc("set_user_mute", { _user_id: userId, _mute_seconds: muteSeconds });
+      if (!user?.id) throw new Error("Не авторизован");
+      const { error } = await supabase.rpc("admin_toggle_mute", {
+        _user_id: userId,
+        _admin_id: user.id,
+        _is_muted: !currentMute,
+        _mute_reason: !currentMute ? "Мут от администратора" : null,
+      });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success(currentMute ? "✅ Пользователь размучен" : `✅ Пользователь замучен на ${muteSeconds}с`);
+      toast.success(currentMute ? "✅ Пользователь размучен" : "✅ Пользователь замучен");
     } catch (error) {
       toast.error("❌ Ошибка обновления мута: " + (error as any).message);
     }
@@ -145,7 +152,12 @@ const Admin = () => {
 
   const toggleMaxWin = async (userId: string, currentMaxWin: boolean) => {
     try {
-      const { error } = await supabase.rpc("set_guaranteed_max_win", { _user_id: userId, _enabled: !currentMaxWin });
+      if (!user?.id) throw new Error("Не авторизован");
+      const { error } = await supabase.rpc("admin_toggle_max_win", {
+        _user_id: userId,
+        _admin_id: user.id,
+        _guaranteed_max_win: !currentMaxWin,
+      });
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success(!currentMaxWin ? "🎰 Макс вин активирован!" : "Макс вин отключен");
@@ -306,11 +318,16 @@ const Admin = () => {
                           <Button size="sm" variant={isVip ? "default" : "outline"} className={`text-xs h-7 ${isVip ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : ''}`}
                             onClick={async () => {
                               try {
-                                const { error } = await supabase.rpc("admin_set_vip", { _user_id: u.id, _is_vip: !isVip });
+                                if (!user?.id) throw new Error("Не авторизован");
+                                const { error } = await supabase.rpc("admin_toggle_vip", { 
+                                  _user_id: u.id, 
+                                  _admin_id: user.id,
+                                  _is_vip: !isVip 
+                                });
                                 if (error) throw error;
                                 queryClient.invalidateQueries({ queryKey: ["admin-users"] });
                                 toast.success(isVip ? "VIP снят" : "VIP выдан!");
-                              } catch { toast.error("Ошибка"); }
+                              } catch (err: any) { toast.error("Ошибка: " + err.message); }
                             }}>
                             {isVip ? "⭐ Снять VIP" : "⭐ VIP"}
                           </Button>
