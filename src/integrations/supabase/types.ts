@@ -3376,9 +3376,35 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_toggle_ban: {
+        Args: {
+          _admin_id: string
+          _ban_reason?: string
+          _is_banned: boolean
+          _user_id: string
+        }
+        Returns: boolean
+      }
       admin_toggle_game_status: {
         Args: { _admin_id: string; _game_id: string; _status: string }
         Returns: Json
+      }
+      admin_toggle_max_win: {
+        Args: {
+          _admin_id: string
+          _guaranteed_max_win: boolean
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      admin_toggle_mute: {
+        Args: {
+          _admin_id: string
+          _is_muted: boolean
+          _mute_reason?: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       admin_toggle_promocode: {
         Args: { _admin_id: string; _is_active: boolean; _promocode_id: string }
@@ -3388,13 +3414,32 @@ export type Database = {
         Args: { _admin_id: string; _is_active: boolean; _task_id: string }
         Returns: Json
       }
-      admin_update_balance: {
-        Args: { _amount: number; _user_id: string }
-        Returns: undefined
+      admin_toggle_vip: {
+        Args: { _admin_id: string; _is_vip: boolean; _user_id: string }
+        Returns: boolean
+      }
+      admin_update_balance:
+        | {
+            Args: {
+              _admin_id: string
+              _amount: number
+              _balance_type?: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _amount: number; _user_id: string }; Returns: undefined }
+      admin_update_gradient: {
+        Args: { _admin_id: string; _gradient_color: string; _user_id: string }
+        Returns: boolean
       }
       admin_update_match: {
         Args: { _admin_id: string; _match_data: Json; _match_id: string }
         Returns: Json
+      }
+      admin_update_username: {
+        Args: { _admin_id: string; _new_username: string; _user_id: string }
+        Returns: boolean
       }
       admin_update_withdrawal_status: {
         Args: { _admin_id: string; _new_status: string; _request_id: string }
