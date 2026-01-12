@@ -186,12 +186,12 @@ export const BettingManagementSection = ({ adminId }: BettingManagementSectionPr
                       size="sm" 
                       className="bg-red-500 hover:bg-red-600"
                       onClick={async () => {
-                        const { error } = await supabase
-                          .from("matches")
-                          .update({ status: "live" })
-                          .eq("id", match.id);
-                        if (error) {
-                          toast.error("Ошибка перевода в LIVE");
+                        const { data, error } = await supabase.rpc("admin_set_match_live", {
+                          _admin_id: adminId,
+                          _match_id: match.id
+                        });
+                        if (error || !data?.success) {
+                          toast.error(data?.message || error?.message || "Ошибка перевода в LIVE");
                         } else {
                           queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
                           toast.success("Матч переведен в LIVE");
