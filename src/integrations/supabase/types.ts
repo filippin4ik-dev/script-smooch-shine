@@ -1328,6 +1328,7 @@ export type Database = {
           both_score_yes_odds: number | null
           created_at: string | null
           draw_odds: number | null
+          exact_score_closed: boolean | null
           exact_score_odds: Json | null
           handicap_value: number | null
           has_both_score: boolean | null
@@ -1403,6 +1404,7 @@ export type Database = {
           both_score_yes_odds?: number | null
           created_at?: string | null
           draw_odds?: number | null
+          exact_score_closed?: boolean | null
           exact_score_odds?: Json | null
           handicap_value?: number | null
           has_both_score?: boolean | null
@@ -1478,6 +1480,7 @@ export type Database = {
           both_score_yes_odds?: number | null
           created_at?: string | null
           draw_odds?: number | null
+          exact_score_closed?: boolean | null
           exact_score_odds?: Json | null
           handicap_value?: number | null
           has_both_score?: boolean | null
@@ -3385,8 +3388,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_toggle_exact_score_betting: {
+        Args: { _admin_id: string; _is_closed: boolean; _match_id: string }
+        Returns: Json
+      }
       admin_toggle_game_status: {
         Args: { _admin_id: string; _game_id: string; _status: string }
+        Returns: Json
+      }
+      admin_toggle_map_betting: {
+        Args: {
+          _admin_id: string
+          _is_closed: boolean
+          _map_number: number
+          _match_id: string
+        }
         Returns: Json
       }
       admin_toggle_max_win: {

@@ -176,8 +176,8 @@ export const BettingManagementSection = ({ adminId }: BettingManagementSectionPr
                   </div>
                 )}
 
-                {/* Управление картами для киберспорта */}
-                <MapBettingControl match={match} />
+                {/* Управление картами для киберспорта и точным счетом */}
+                <MapBettingControl match={match} adminId={adminId} />
 
                 {/* Кнопки управления */}
                 <div className="flex flex-wrap gap-2 pt-2">
