@@ -291,13 +291,15 @@ export const MatchDetailsDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6">
-        <DialogHeader>
+        <DialogHeader className="pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg sm:text-2xl">
             <span className="text-xl sm:text-2xl">{getSportIcon(match.sport)}</span>
             <span className="truncate">{match.team1.name} vs {match.team2.name}</span>
           </DialogTitle>
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            {format(new Date(match.match_time), "dd.MM.yyyy в HH:mm")}
+          <div className="flex items-center justify-between">
+            <div className="text-xs sm:text-sm text-muted-foreground">
+              {format(new Date(match.match_time), "dd.MM.yyyy в HH:mm")}
+            </div>
           </div>
         </DialogHeader>
 
@@ -811,7 +813,7 @@ export const MatchDetailsDialog = ({
                 🔴 Матч идет - ставки закрыты
               </Badge>
               <div>
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="min-w-[120px]">
                   Закрыть
                 </Button>
               </div>
@@ -824,10 +826,19 @@ export const MatchDetailsDialog = ({
                 ✅ Матч завершен
               </Badge>
               <div>
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="min-w-[120px]">
                   Закрыть
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Universal close button for all states */}
+          {match.status === "upcoming" && (
+            <div className="text-center pt-4">
+              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="text-muted-foreground hover:text-foreground">
+                Закрыть
+              </Button>
             </div>
           )}
         </div>

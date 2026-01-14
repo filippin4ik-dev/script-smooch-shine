@@ -157,7 +157,7 @@ const PodiumItem = ({
         config.labelColor,
         position === 1 ? "text-lg" : "text-base"
       )}>
-        {Number(player.total_wins || 0).toFixed(0)}₽
+        {Math.max(0, Number(player.total_wins || 0)).toFixed(0)}₽
       </div>
 
       {/* Bets count */}
@@ -212,7 +212,7 @@ const LeaderboardRow = ({
               <span className="opacity-50">•</span>
               <span className="text-amber-500/80 flex items-center gap-0.5">
                 <Flame className="w-2.5 h-2.5" />
-                {Number(player.biggest_win).toFixed(0)}₽
+                {Math.max(0, Number(player.biggest_win)).toFixed(0)}₽
               </span>
             </>
           )}
@@ -225,7 +225,7 @@ const LeaderboardRow = ({
           "font-bold text-sm sm:text-base",
           isCurrentUser ? "text-primary" : "text-green-500"
         )}>
-          {Number(player.total_wins).toFixed(0)}₽
+          {Math.max(0, Number(player.total_wins)).toFixed(0)}₽
         </div>
       </div>
     </div>
@@ -277,6 +277,7 @@ export const TournamentLeaderboard = ({
         <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/30">
           <Zap className="w-4 h-4 text-primary" />
           <span className="text-sm font-bold text-primary">Твоё место: #{myRank.rank}</span>
+          <span className="text-sm text-primary/70">• {Math.max(0, Number(myRank.total_wins)).toFixed(0)}₽</span>
           <span className="text-sm text-primary/70">• {Number(myRank.total_wins).toFixed(0)}₽</span>
         </div>
       )}
