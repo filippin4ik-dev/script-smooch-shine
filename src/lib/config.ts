@@ -1,8 +1,8 @@
 // Application configuration constants
 export const APP_CONFIG = {
   // Telegram bot configuration
-  BOT_USERNAME: "plitebet_bot",
-  APP_NAME: "plitebet",
+  BOT_USERNAME: "casinocasino123_bot",
+  APP_NAME: "casic",
   
   // Get the full Telegram link with startapp parameter
   getTelegramLink: (startParam: string = "") => {
