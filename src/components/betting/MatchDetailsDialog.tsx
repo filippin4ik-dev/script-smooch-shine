@@ -806,18 +806,28 @@ export const MatchDetailsDialog = ({
           )}
 
           {match.status === "live" && !hasOpenMapBets() && (
-            <div className="text-center py-6 sm:py-8">
+            <div className="text-center py-6 sm:py-8 space-y-4">
               <Badge variant="destructive" className="text-sm sm:text-lg px-4 sm:px-6 py-2 sm:py-3">
                 🔴 Матч идет - ставки закрыты
               </Badge>
+              <div>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Закрыть
+                </Button>
+              </div>
             </div>
           )}
 
           {match.status === "finished" && (
-            <div className="text-center py-6 sm:py-8">
+            <div className="text-center py-6 sm:py-8 space-y-4">
               <Badge variant="secondary" className="text-sm sm:text-lg px-4 sm:px-6 py-2 sm:py-3">
                 ✅ Матч завершен
               </Badge>
+              <div>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Закрыть
+                </Button>
+              </div>
             </div>
           )}
         </div>
