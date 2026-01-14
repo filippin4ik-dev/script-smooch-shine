@@ -71,20 +71,26 @@ export const MapBettingControl = ({ match, adminId }: MapBettingControlProps) =>
 
   const toggleExactScoreBetting = async (currentValue: boolean) => {
     setIsLoading(true);
+    const newValue = !currentValue;
+    console.log("toggleExactScoreBetting called:", { currentValue, newValue, matchId: match.id, adminId });
+    
     try {
       const { data, error } = await supabase.rpc("admin_toggle_exact_score_betting", {
         _admin_id: adminId,
         _match_id: match.id,
-        _is_closed: !currentValue
+        _is_closed: newValue
       });
 
+      console.log("RPC response:", { data, error });
+      
       if (error) throw error;
       if (!data?.success) {
         throw new Error(data?.message || "Ошибка обновления");
       }
 
-      queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
-      toast.success(`Ставки на точный счет ${!currentValue ? "закрыты" : "открыты"}`);
+      await queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+      await queryClient.refetchQueries({ queryKey: ["admin-matches"] });
+      toast.success(`Ставки на точный счет ${newValue ? "закрыты" : "открыты"}`);
     } catch (error: any) {
       console.error("Toggle exact score betting error:", error);
       toast.error(error.message || "Ошибка при обновлении");
