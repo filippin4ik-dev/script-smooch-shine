@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Coins, Gift, Sparkles, Shield, Copy, Link } from "lucide-react";
-
+import { APP_CONFIG } from "@/lib/config";
 interface PromocodeManagerProps {
   adminId: string;
 }
@@ -88,7 +88,7 @@ export const PromocodeManager = ({ adminId }: PromocodeManagerProps) => {
   };
 
   const copyPromocodeLink = (code: string) => {
-    const link = `https://t.me/casinocasino123_bot/casic?startapp=PROMO_${code}`;
+    const link = APP_CONFIG.getPromoLink(code);
     navigator.clipboard.writeText(link);
     toast.success("Ссылка на промокод скопирована!");
   };
@@ -289,7 +289,7 @@ export const PromocodeManager = ({ adminId }: PromocodeManagerProps) => {
               <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-lg border border-primary/20">
                 <Link className="w-4 h-4 text-primary shrink-0" />
                 <code className="text-[10px] text-muted-foreground truncate flex-1">
-                  https://t.me/casinocasino123_bot/casic?startapp=PROMO_{promo.code}
+                  {APP_CONFIG.getPromoLink(promo.code)}
                 </code>
                 <Button
                   size="sm"

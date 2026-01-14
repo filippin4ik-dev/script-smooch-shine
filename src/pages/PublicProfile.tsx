@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_CONFIG } from "@/lib/config";
 import { VipUsername, GradientColor } from "@/components/VipUsername";
 import { AdminProfileBadge } from "@/components/AdminProfileBadge";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -116,7 +117,7 @@ const PublicProfile = () => {
   const winRate = totalGames > 0 ? ((profile?.total_wins || 0) / totalGames * 100).toFixed(1) : "0.0";
 
   const copyProfileLink = () => {
-    const link = `https://t.me/casinocasino123_bot/casic?startapp=profile_${publicId}`;
+    const link = APP_CONFIG.getProfileLink(Number(publicId));
     navigator.clipboard.writeText(link);
     toast.success("Ссылка скопирована!");
   };
