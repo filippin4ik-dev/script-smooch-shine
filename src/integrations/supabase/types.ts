@@ -3445,6 +3445,13 @@ export type Database = {
         Args: { _admin_id: string; _new_status: string; _request_id: string }
         Returns: Json
       }
+      apply_promocode: {
+        Args: { _code: string; _user_id: string }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
       apply_referral_code: {
         Args: { _referral_code: string; _user_id: string }
         Returns: {

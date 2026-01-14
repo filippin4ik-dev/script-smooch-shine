@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Copy, Gift, Users, ArrowLeft, TrendingUp, Star, Coins } from "lucide-react";
+import { APP_CONFIG } from "@/lib/config";
 
 const Referral = () => {
   const { user } = useAuth();
@@ -54,7 +55,7 @@ const Referral = () => {
 
   const copyReferralLink = () => {
     if (profile?.referral_code) {
-      const link = `https://t.me/casinocasino123_bot/casic?startapp=${profile.referral_code}`;
+      const link = APP_CONFIG.getReferralLink(profile.referral_code);
       navigator.clipboard.writeText(link);
       toast.success("Реферальная ссылка скопирована!");
     }
@@ -150,7 +151,7 @@ const Referral = () => {
                 <div className="flex gap-2">
                   <div className="flex-1 bg-muted p-3 rounded-lg text-center overflow-hidden">
                     <div className="text-sm text-primary truncate">
-                      t.me/casinocasino123_bot/casic?startapp={profile?.referral_code}
+                      {profile?.referral_code ? APP_CONFIG.getReferralLink(profile.referral_code).replace('https://', '') : 'Загрузка...'}
                     </div>
                   </div>
                   <Button
