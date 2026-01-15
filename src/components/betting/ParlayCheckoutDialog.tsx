@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTelegramNotification } from "@/lib/telegramNotifications";
 
 interface ParlayBet {
   matchId: string;
@@ -133,6 +134,15 @@ export const ParlayCheckoutDialog = ({
 
       if (data?.[0]?.success) {
         toast.success(data[0].message);
+        
+        // Отправляем уведомление в Telegram об экспрессе
+        const potentialWin = useBettingFreebet ? (amount * totalOdds) / 2 : amount * totalOdds;
+        sendTelegramNotification({
+          userId,
+          message: `Экспресс размещён!\n\n🎯 Ставок: ${parlayBets.length}\n💰 Сумма: ${amount.toFixed(2)}₽\n📊 Общий коэф: ${totalOdds.toFixed(2)}x\n💵 Возможный выигрыш: ${potentialWin.toFixed(2)}₽`,
+          notificationType: 'system',
+        });
+        
         onBetPlaced();
         setBetAmount("");
         onOpenChange(false);

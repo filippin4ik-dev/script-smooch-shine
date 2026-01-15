@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { sendTelegramNotification } from "@/lib/telegramNotifications";
 
 interface MatchDetailsDialogProps {
   match: any;
@@ -131,6 +132,14 @@ export const MatchDetailsDialog = ({
 
       if (data && data[0]?.success) {
         toast.success(data[0].message);
+        
+        // Отправляем уведомление в Telegram о размещении ставки
+        sendTelegramNotification({
+          userId,
+          message: `Ставка размещена!\n\n🎯 ${match.team1?.name} vs ${match.team2?.name}\n💰 Сумма: ${amount.toFixed(2)}₽\n📊 Коэф: ${selectedOdds}x\n💵 Возможный выигрыш: ${(amount * selectedOdds).toFixed(2)}₽`,
+          notificationType: 'system',
+        });
+        
         onBetPlaced();
         setBetAmount("");
         setSelectedBetType(null);
