@@ -104,6 +104,12 @@ export const MatchDetailsDialog = ({
       return;
     }
 
+    // Блокируем точный счет, если админ закрыл этот рынок
+    if (selectedBetType.startsWith("exact_") && match?.exact_score_closed) {
+      toast.error("Ставки на точный счет закрыты");
+      return;
+    }
+
     const handicapValue = getHandicapValueForBetType();
 
     try {
@@ -674,8 +680,8 @@ export const MatchDetailsDialog = ({
                   </div>
                 )}
 
-                {/* Exact Score - only in upcoming */}
-                {match.exact_score_odds && match.status === "upcoming" && (
+                {/* Exact Score - only in upcoming (and only if not закрыто) */}
+                {match.exact_score_odds && match.status === "upcoming" && !match.exact_score_closed && (
                   <div className="space-y-2 sm:space-y-3">
                     <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
                       🎯 Точный счет (по картам)
@@ -708,6 +714,7 @@ export const MatchDetailsDialog = ({
                     </div>
                   </div>
                 )}
+
               </>
             )}
 
