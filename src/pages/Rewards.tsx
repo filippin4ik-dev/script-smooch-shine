@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyBonus } from "@/lib/telegramNotifications";
 
 export default function Rewards() {
   const navigate = useNavigate();
@@ -78,6 +79,12 @@ export default function Rewards() {
     onSuccess: (data) => {
       if (data?.success) {
         toast.success(data.message);
+        
+        // Отправляем уведомление в Telegram о промокоде
+        if (user?.id) {
+          notifyBonus(user.id, data.reward_amount || 0, 'Промокод', data.message || 'Промокод активирован!');
+        }
+        
         queryClient.invalidateQueries({ queryKey: ["profile"] });
         setPromocode("");
       } else {

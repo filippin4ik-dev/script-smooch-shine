@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
+import { notifyBonus } from "@/lib/telegramNotifications";
 
 interface BonusWheelProps {
   userId: string;
@@ -125,6 +126,10 @@ export const BonusWheel = ({ userId, wheelId, isRegistrationWheel = false, onCom
         setResult({ reward_description: resultData.reward_description, reward_amount: resultData.reward_amount });
         fireConfetti();
         toast.success(`🎉 ${resultData.reward_description}`);
+        
+        // Отправляем уведомление в Telegram о бонусе с колеса
+        notifyBonus(userId, resultData.reward_amount || 0, isRegistrationWheel ? 'Колесо регистрации' : 'Бонусное колесо', resultData.reward_description);
+        
         queryClient.invalidateQueries({ queryKey: ["profile"] });
         queryClient.invalidateQueries({ queryKey: ["bonus-wheels"] });
         queryClient.invalidateQueries({ queryKey: ["registration-wheel"] });
