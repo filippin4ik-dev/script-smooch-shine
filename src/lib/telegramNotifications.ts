@@ -49,10 +49,15 @@ interface SendNotificationParams {
   notificationType?: NotificationType;
   data?: NotificationData;
   sendToAll?: boolean;
+  /**
+   * Сохранять уведомление в БД (system_notifications).
+   * По умолчанию true. Используйте false, если вы уже сохранили уведомление отдельно.
+   */
+  saveToDb?: boolean;
 }
 
 /**
- * Отправляет уведомление пользователю в Telegram и сохраняет в БД
+ * Отправляет уведомление пользователю в Telegram и (опционально) сохраняет в БД
  */
 export async function sendTelegramNotification({
   userId,
@@ -62,6 +67,7 @@ export async function sendTelegramNotification({
   notificationType = 'custom',
   data,
   sendToAll = false,
+  saveToDb = true,
 }: SendNotificationParams): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await supabase.functions.invoke('telegram-notifications', {
@@ -73,6 +79,7 @@ export async function sendTelegramNotification({
         notification_type: notificationType,
         data,
         send_to_all: sendToAll,
+        save_to_db: saveToDb,
       },
     });
 

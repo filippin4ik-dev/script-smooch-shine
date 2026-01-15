@@ -11,6 +11,11 @@ interface NotificationRequest {
   public_id?: number;
   message: string;
   send_to_all?: boolean;
+  /**
+   * Сохранять уведомление в таблицу system_notifications.
+   * По умолчанию true.
+   */
+  save_to_db?: boolean;
   notification_type?: NotificationType;
   data?: Record<string, any>;
 }
@@ -238,6 +243,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const notificationType = body.notification_type || 'custom';
       const formattedMessage = formatNotification(notificationType, body.message, body.data);
+      const saveToDb = body.save_to_db ?? true;
 
       // Отправка всем пользователям
       if (body.send_to_all) {
@@ -253,15 +259,17 @@ const handler = async (req: Request): Promise<Response> => {
           );
         }
 
-        // Сохраняем в БД
-        const notifications = profiles?.map((p) => ({
-          user_id: p.id,
-          message: body.message,
-          is_read: false,
-        })) || [];
+        // Сохраняем в БД (опционально)
+        if (saveToDb) {
+          const notifications = profiles?.map((p) => ({
+            user_id: p.id,
+            message: body.message,
+            is_read: false,
+          })) || [];
 
-        if (notifications.length > 0) {
-          await supabase.from("system_notifications").insert(notifications);
+          if (notifications.length > 0) {
+            await supabase.from("system_notifications").insert(notifications);
+          }
         }
 
         // Отправляем в Telegram всем
@@ -273,19 +281,20 @@ const handler = async (req: Request): Promise<Response> => {
             const sent = await sendTelegramMessage(profile.telegram_id, formattedMessage);
             if (sent) sentCount++;
             else failedCount++;
-            
+
             // Небольшая задержка чтобы не превысить лимиты Telegram API
-            await new Promise(r => setTimeout(r, 50));
+            await new Promise((r) => setTimeout(r, 50));
           }
         }
 
         return new Response(
-          JSON.stringify({ 
-            success: true, 
+          JSON.stringify({
+            success: true,
             total: profiles?.length || 0,
             telegram_sent: sentCount,
             telegram_failed: failedCount,
-            message: body.message
+            message: body.message,
+            saved_to_db: saveToDb,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -350,12 +359,14 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Сохраняем в БД
-      await supabase.from("system_notifications").insert({
-        user_id: userId,
-        message: body.message,
-        is_read: false,
-      });
+      // Сохраняем в БД (опционально)
+      if (saveToDb) {
+        await supabase.from("system_notifications").insert({
+          user_id: userId,
+          message: body.message,
+          is_read: false,
+        });
+      }
 
       // Отправляем в Telegram
       let telegramSent = false;
@@ -364,12 +375,13 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           telegram_id: telegramId,
           user_id: userId,
           telegram_sent: telegramSent,
-          message: body.message
+          message: body.message,
+          saved_to_db: saveToDb,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

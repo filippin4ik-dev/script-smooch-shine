@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTelegramAuth } from "@/hooks/useTelegramAuth";
+import { sendTelegramNotification } from "@/lib/telegramNotifications";
 
 interface Profile {
   id: string;
@@ -102,11 +103,32 @@ export const SystemNotificationsManager = () => {
       return;
     }
 
+    // ВАЖНО: RPC выше сохраняет уведомление в БД.
+    // Чтобы оно пришло в Telegram сразу и без дублей в system_notifications,
+    // отправляем через backend-функцию с saveToDb: false.
+    const telegramResult = await sendTelegramNotification({
+      userId: targetType === "all" ? undefined : selectedUserId,
+      message: message.trim(),
+      notificationType: 'admin',
+      sendToAll: targetType === "all",
+      saveToDb: false,
+    });
+
+    if (!telegramResult.success) {
+      console.warn('Telegram send failed:', telegramResult.error);
+      toast({
+        title: "Отправлено, но не дошло в Telegram",
+        description: telegramResult.error || "Telegram отправка не удалась",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Успешно",
-      description: targetType === "all" 
-        ? "Уведомление отправлено всем пользователям"
-        : "Уведомление отправлено пользователю",
+      description: targetType === "all"
+        ? "Уведомление отправлено всем пользователям (и в Telegram)"
+        : "Уведомление отправлено пользователю (и в Telegram)",
     });
 
     setMessage("");
