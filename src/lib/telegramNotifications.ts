@@ -68,7 +68,7 @@ export async function sendTelegramNotification({
   data,
   sendToAll = false,
   saveToDb = true,
-}: SendNotificationParams): Promise<{ success: boolean; error?: string }> {
+}: SendNotificationParams): Promise<{ success: boolean; error?: string; data?: any }> {
   try {
     const response = await supabase.functions.invoke('telegram-notifications', {
       body: {
@@ -88,7 +88,7 @@ export async function sendTelegramNotification({
       return { success: false, error: response.error.message };
     }
 
-    return { success: true };
+    return { success: true, data: response.data };
   } catch (error: any) {
     console.error('Failed to send notification:', error);
     return { success: false, error: error.message };

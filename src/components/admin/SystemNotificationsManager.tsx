@@ -124,6 +124,28 @@ export const SystemNotificationsManager = () => {
       return;
     }
 
+    // Backend функция может вернуть success=true, но telegram_sent=false (chat not found / blocked)
+    const tgData = telegramResult.data;
+    const telegramSent = typeof tgData?.telegram_sent === 'boolean' ? tgData.telegram_sent : undefined;
+    const telegramFailed = typeof tgData?.telegram_failed === 'number' ? tgData.telegram_failed : undefined;
+    const telegramSentCount = typeof tgData?.telegram_sent === 'number' ? tgData.telegram_sent : undefined;
+
+    const hasFailures =
+      telegramSent === false ||
+      (typeof telegramFailed === 'number' && telegramFailed > 0);
+
+    if (hasFailures) {
+      toast({
+        title: "Уведомление отправлено, но Telegram доставил не всем",
+        description:
+          typeof telegramFailed === 'number' && typeof telegramSentCount === 'number'
+            ? `Доставлено: ${telegramSentCount}, не доставлено: ${telegramFailed}`
+            : "Часть пользователей не получила сообщение (chat not found / blocked)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Успешно",
       description: targetType === "all"
