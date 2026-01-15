@@ -2,3 +2,9 @@ project_id = "tfnagxrktgdztqvmbjub"
 
 [functions.bulk-import]
 verify_jwt = false
+
+[functions.telegram-notifications]
+verify_jwt = false
+
+[functions.telegram-bot]
+verify_jwt = false

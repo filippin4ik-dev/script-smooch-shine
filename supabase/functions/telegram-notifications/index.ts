@@ -11,6 +11,153 @@ interface NotificationRequest {
   public_id?: number;
   message: string;
   send_to_all?: boolean;
+  notification_type?: NotificationType;
+  data?: Record<string, any>;
+}
+
+type NotificationType = 
+  | 'balance_update'      // Пополнение/списание баланса
+  | 'bet_win'             // Выигрыш ставки
+  | 'bet_loss'            // Проигрыш ставки
+  | 'game_win'            // Выигрыш в игре
+  | 'game_loss'           // Проигрыш в игре
+  | 'bonus'               // Бонус (промокод, награда)
+  | 'level_up'            // Повышение уровня
+  | 'achievement'         // Достижение
+  | 'withdrawal_approved' // Вывод одобрен
+  | 'withdrawal_rejected' // Вывод отклонен
+  | 'giveaway_win'        // Выигрыш в розыгрыше
+  | 'freebet'             // Фрибет получен
+  | 'free_spins'          // Фриспины получены
+  | 'system'              // Системное уведомление
+  | 'admin'               // От администрации
+  | 'match_result'        // Результат матча
+  | 'custom';             // Кастомное
+
+// Красивые шаблоны сообщений
+function formatNotification(type: NotificationType, message: string, data?: Record<string, any>): string {
+  const templates: Record<NotificationType, () => string> = {
+    balance_update: () => {
+      const amount = data?.amount || 0;
+      const isPositive = amount >= 0;
+      return `💰 <b>Баланс обновлён</b>\n\n${isPositive ? '➕' : '➖'} <b>${isPositive ? '+' : ''}${amount} ₽</b>\n\n${message}`;
+    },
+    bet_win: () => {
+      const amount = data?.amount || 0;
+      const odds = data?.odds || 0;
+      const team = data?.team || '';
+      return `🎉 <b>СТАВКА ВЫИГРАЛА!</b>\n\n🏆 ${team}\n📊 Коэф: <b>${odds}</b>\n💵 Выигрыш: <b>+${amount} ₽</b>\n\n${message}`;
+    },
+    bet_loss: () => {
+      const amount = data?.amount || 0;
+      const team = data?.team || '';
+      return `😔 <b>Ставка проиграла</b>\n\n❌ ${team}\n💸 Сумма: <b>-${amount} ₽</b>\n\n${message}`;
+    },
+    game_win: () => {
+      const amount = data?.amount || 0;
+      const game = data?.game || 'Игра';
+      const multiplier = data?.multiplier || 1;
+      return `🎰 <b>ПОБЕДА в ${game}!</b>\n\n💎 Множитель: <b>x${multiplier}</b>\n💰 Выигрыш: <b>+${amount} ₽</b>\n\n${message}`;
+    },
+    game_loss: () => {
+      const amount = data?.amount || 0;
+      const game = data?.game || 'Игра';
+      return `😢 <b>Проигрыш в ${game}</b>\n\n💸 Сумма: <b>-${amount} ₽</b>\n\n${message}`;
+    },
+    bonus: () => {
+      const amount = data?.amount || 0;
+      const bonusType = data?.bonus_type || 'бонус';
+      return `🎁 <b>БОНУС ПОЛУЧЕН!</b>\n\n✨ ${bonusType}\n💰 Сумма: <b>+${amount} ₽</b>\n\n${message}`;
+    },
+    level_up: () => {
+      const level = data?.level || 1;
+      const reward = data?.reward || 0;
+      return `⬆️ <b>НОВЫЙ УРОВЕНЬ!</b>\n\n🏅 Уровень: <b>${level}</b>\n🎁 Награда: <b>+${reward} ₽</b>\n\n${message}`;
+    },
+    achievement: () => {
+      const title = data?.title || 'Достижение';
+      const reward = data?.reward || 0;
+      return `🏆 <b>ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!</b>\n\n🎖️ <b>${title}</b>\n🎁 Награда: <b>+${reward} ₽</b>\n\n${message}`;
+    },
+    withdrawal_approved: () => {
+      const amount = data?.amount || 0;
+      const method = data?.method || '';
+      return `✅ <b>ВЫВОД ОДОБРЕН!</b>\n\n💳 Способ: ${method}\n💰 Сумма: <b>${amount} ₽</b>\n\n${message}`;
+    },
+    withdrawal_rejected: () => {
+      const amount = data?.amount || 0;
+      const reason = data?.reason || 'Причина не указана';
+      return `❌ <b>Вывод отклонён</b>\n\n💰 Сумма: <b>${amount} ₽</b>\n📝 Причина: ${reason}\n\n${message}`;
+    },
+    giveaway_win: () => {
+      const prize = data?.prize || 'Приз';
+      const amount = data?.amount || 0;
+      return `🎊 <b>ПОЗДРАВЛЯЕМ!</b>\n\n🥳 Вы выиграли в розыгрыше!\n🎁 Приз: <b>${prize}</b>\n💰 Сумма: <b>+${amount} ₽</b>\n\n${message}`;
+    },
+    freebet: () => {
+      const amount = data?.amount || 0;
+      const type = data?.freebet_type || 'games';
+      const typeLabel = type === 'betting' ? 'ставки' : 'игры';
+      return `🎫 <b>ФРИБЕТ ПОЛУЧЕН!</b>\n\n💎 Сумма: <b>${amount} ₽</b>\n🎯 Для: ${typeLabel}\n\n${message}`;
+    },
+    free_spins: () => {
+      const spins = data?.spins || 0;
+      const game = data?.game || 'слоты';
+      return `🎰 <b>ФРИСПИНЫ ПОЛУЧЕНЫ!</b>\n\n🔄 Количество: <b>${spins} вращений</b>\n🎮 Игра: ${game}\n\n${message}`;
+    },
+    system: () => {
+      return `⚙️ <b>Системное уведомление</b>\n\n${message}`;
+    },
+    admin: () => {
+      return `👑 <b>Сообщение от администрации</b>\n\n${message}`;
+    },
+    match_result: () => {
+      const team1 = data?.team1 || 'Команда 1';
+      const team2 = data?.team2 || 'Команда 2';
+      const score1 = data?.score1 ?? '-';
+      const score2 = data?.score2 ?? '-';
+      const winner = data?.winner || '';
+      return `⚽ <b>МАТЧ ЗАВЕРШЁН</b>\n\n${team1} <b>${score1}</b> : <b>${score2}</b> ${team2}\n\n🏆 Победитель: <b>${winner}</b>\n\n${message}`;
+    },
+    custom: () => message,
+  };
+
+  return templates[type]?.() || message;
+}
+
+// Отправка сообщения в Telegram
+async function sendTelegramMessage(telegramId: number, text: string): Promise<boolean> {
+  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  
+  if (!botToken) {
+    console.error("TELEGRAM_BOT_TOKEN not configured");
+    return false;
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: telegramId,
+        text: text,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (!result.ok) {
+      console.error("Telegram API error:", result);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Failed to send Telegram message:", error);
+    return false;
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -32,7 +179,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       let profileId: string | null = null;
 
-      // Поиск по telegram_id
       if (telegramId) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -40,13 +186,9 @@ const handler = async (req: Request): Promise<Response> => {
           .eq("telegram_id", parseInt(telegramId))
           .single();
         profileId = profile?.id || null;
-      }
-      // Поиск по user_id (UUID)
-      else if (userId) {
+      } else if (userId) {
         profileId = userId;
-      }
-      // Поиск по public_id (8-значный код)
-      else if (publicId) {
+      } else if (publicId) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("id")
@@ -94,6 +236,9 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      const notificationType = body.notification_type || 'custom';
+      const formattedMessage = formatNotification(notificationType, body.message, body.data);
+
       // Отправка всем пользователям
       if (body.send_to_all) {
         const { data: profiles, error: profilesError } = await supabase
@@ -108,6 +253,7 @@ const handler = async (req: Request): Promise<Response> => {
           );
         }
 
+        // Сохраняем в БД
         const notifications = profiles?.map((p) => ({
           user_id: p.id,
           message: body.message,
@@ -115,29 +261,30 @@ const handler = async (req: Request): Promise<Response> => {
         })) || [];
 
         if (notifications.length > 0) {
-          const { error: insertError } = await supabase
-            .from("system_notifications")
-            .insert(notifications);
-
-          if (insertError) {
-            console.error("Error inserting notifications:", insertError);
-            return new Response(
-              JSON.stringify({ error: "Failed to create notifications" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
+          await supabase.from("system_notifications").insert(notifications);
         }
 
-        const telegramIds = profiles?.filter(p => p.telegram_id).map(p => ({
-          telegram_id: p.telegram_id,
-          public_id: p.public_id
-        })) || [];
+        // Отправляем в Telegram всем
+        let sentCount = 0;
+        let failedCount = 0;
+
+        for (const profile of profiles || []) {
+          if (profile.telegram_id) {
+            const sent = await sendTelegramMessage(profile.telegram_id, formattedMessage);
+            if (sent) sentCount++;
+            else failedCount++;
+            
+            // Небольшая задержка чтобы не превысить лимиты Telegram API
+            await new Promise(r => setTimeout(r, 50));
+          }
+        }
 
         return new Response(
           JSON.stringify({ 
             success: true, 
-            count: notifications.length,
-            users: telegramIds,
+            total: profiles?.length || 0,
+            telegram_sent: sentCount,
+            telegram_failed: failedCount,
             message: body.message
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -150,13 +297,13 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Поиск по public_id
       if (body.public_id && !userId) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("id, telegram_id")
           .eq("public_id", body.public_id)
           .single();
 
-        if (profileError || !profile) {
+        if (!profile) {
           return new Response(
             JSON.stringify({ error: "User not found by public_id" }),
             { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -168,13 +315,13 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Поиск по telegram_id
       if (telegramId && !userId) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("id")
           .eq("telegram_id", telegramId)
           .single();
 
-        if (profileError || !profile) {
+        if (!profile) {
           return new Response(
             JSON.stringify({ error: "User not found by telegram_id" }),
             { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -187,7 +334,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (userId && !telegramId) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("telegram_id, public_id")
+          .select("telegram_id")
           .eq("id", userId)
           .single();
 
@@ -203,21 +350,17 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Создать уведомление в БД
-      const { error: insertError } = await supabase
-        .from("system_notifications")
-        .insert({
-          user_id: userId,
-          message: body.message,
-          is_read: false,
-        });
+      // Сохраняем в БД
+      await supabase.from("system_notifications").insert({
+        user_id: userId,
+        message: body.message,
+        is_read: false,
+      });
 
-      if (insertError) {
-        console.error("Error inserting notification:", insertError);
-        return new Response(
-          JSON.stringify({ error: "Failed to create notification" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // Отправляем в Telegram
+      let telegramSent = false;
+      if (telegramId) {
+        telegramSent = await sendTelegramMessage(telegramId, formattedMessage);
       }
 
       return new Response(
@@ -225,6 +368,7 @@ const handler = async (req: Request): Promise<Response> => {
           success: true, 
           telegram_id: telegramId,
           user_id: userId,
+          telegram_sent: telegramSent,
           message: body.message
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
