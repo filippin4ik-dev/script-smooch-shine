@@ -82,13 +82,16 @@ export const NotificationsPanel = ({ userId }: NotificationsPanelProps) => {
   };
 
   const markAllAsRead = async () => {
+    // Отмечаем только уведомления, принадлежащие текущему пользователю
+    // (глобальные уведомления user_id=null нельзя обновить из-за RLS)
     const { error } = await supabase
       .from('system_notifications')
       .update({ is_read: true })
-      .or(`user_id.eq.${userId},user_id.is.null`)
+      .eq('user_id', userId)
       .eq('is_read', false);
 
     if (error) {
+      console.error('Error marking all as read:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось отметить уведомления как прочитанные",
