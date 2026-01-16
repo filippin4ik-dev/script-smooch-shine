@@ -1712,6 +1712,7 @@ export type Database = {
           invited_user_id: string | null
           is_draw: boolean | null
           last_action_at: string | null
+          max_balance: number | null
           max_players: number | null
           opponent_cards: Json | null
           opponent_current_bet: number
@@ -1756,6 +1757,7 @@ export type Database = {
           invited_user_id?: string | null
           is_draw?: boolean | null
           last_action_at?: string | null
+          max_balance?: number | null
           max_players?: number | null
           opponent_cards?: Json | null
           opponent_current_bet?: number
@@ -1800,6 +1802,7 @@ export type Database = {
           invited_user_id?: string | null
           is_draw?: boolean | null
           last_action_at?: string | null
+          max_balance?: number | null
           max_players?: number | null
           opponent_cards?: Json | null
           opponent_current_bet?: number
@@ -3858,6 +3861,7 @@ export type Database = {
         Args: {
           p_bet_amount: number
           p_cards_per_player?: number
+          p_max_balance?: number
           p_max_players?: number
           p_user_id: string
         }
@@ -4084,6 +4088,7 @@ export type Database = {
           invited_user_id: string | null
           is_draw: boolean | null
           last_action_at: string | null
+          max_balance: number | null
           max_players: number | null
           opponent_cards: Json | null
           opponent_current_bet: number
