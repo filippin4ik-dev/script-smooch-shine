@@ -102,7 +102,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
 
   const fetchUserId = useCallback(async () => {
-    const { data } = await supabase.from('profiles').select('id').eq('telegram_id', parseInt(visitorId)).single();
+    console.log('Fetching user with telegram_id:', visitorId);
+    const { data, error } = await supabase.from('profiles').select('id').eq('telegram_id', parseInt(visitorId)).maybeSingle();
+    console.log('Profile fetch result:', data, error);
     if (data) setUserId(data.id);
     setLoading(false);
   }, [visitorId]);
@@ -121,7 +123,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (!userId) return;
     const { data: available } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`).eq('status', 'waiting').neq('creator_id', userId).is('invited_user_id', null).order('created_at', { ascending: false }).limit(20);
     const { data: invitations } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`).eq('invited_user_id', userId).eq('status', 'invited').order('created_at', { ascending: false });
-    const { data: active } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`).eq('status', 'betting').or(`creator_id.eq.${userId},opponent_id.eq.${userId}`).single();
+    const { data: active } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`).eq('status', 'betting').or(`creator_id.eq.${userId},opponent_id.eq.${userId}`).maybeSingle();
     const { data: myWaiting } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`).eq('creator_id', userId).in('status', ['waiting', 'invited']).order('created_at', { ascending: false });
     const { data: recent } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`).eq('status', 'finished').or(`creator_id.eq.${userId},opponent_id.eq.${userId}`).order('finished_at', { ascending: false }).limit(10);
     setAvailableDuels([...(myWaiting || []), ...(available || [])] as Duel[]);
@@ -133,7 +135,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const searchUsers = async () => {
     if (!searchQuery.trim() || !userId) return;
     setSearchLoading(true);
-    const { data } = await supabase.rpc('search_users_for_duel', { search_query: searchQuery.trim(), current_user_id: userId });
+    console.log('Searching users:', searchQuery.trim(), userId);
+    const { data, error } = await supabase.rpc('search_users_for_duel', { search_query: searchQuery.trim(), current_user_id: userId });
+    console.log('Search result:', data, error);
     if (data) setSearchResults(data as SearchUser[]);
     setSearchLoading(false);
   };
@@ -144,7 +148,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (isNaN(amount) || amount < 10) { toast.error('Минимальная ставка 10$'); return; }
     if (amount > balance) { toast.error('Недостаточно средств'); return; }
     setCreatingDuel(true);
+    console.log('Creating duel:', userId, amount, invitedUserId);
     const { data, error } = await supabase.rpc('create_poker_duel_v2', { p_creator_id: userId, p_initial_bet: amount, p_invited_user_id: invitedUserId || null });
+    console.log('Create duel result:', data, error);
     if (error) toast.error(error.message);
     else {
       toast.success(invitedUserId ? 'Приглашение отправлено!' : 'Дуэль создана!');
