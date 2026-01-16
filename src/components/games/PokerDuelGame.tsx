@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { APP_CONFIG } from '@/lib/config';
+import { PokerResultAnimation } from './PokerResultAnimation';
 
 interface PokerDuelGameProps {
   visitorId: string;
@@ -282,6 +283,10 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [showRules, setShowRules] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME_SECONDS);
   const [selectedHistoryGame, setSelectedHistoryGame] = useState<Duel | null>(null);
+  const [showResultAnimation, setShowResultAnimation] = useState(false);
+  const [resultAnimationType, setResultAnimationType] = useState<'win' | 'lose' | 'draw'>('win');
+  const [resultAnimationAmount, setResultAnimationAmount] = useState(0);
+  const lastDuelStatusRef = useRef<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchUserId = useCallback(async () => {
@@ -313,6 +318,23 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setMyInvitations((invitations || []) as Duel[]);
     setRecentGames((recent || []) as Duel[]);
     if (active) { 
+      // Check if game just ended - trigger animation
+      if (active.game_phase === 'showdown' && lastDuelStatusRef.current !== 'showdown') {
+        const iWon = active.winner_id === userId;
+        if (active.is_draw) {
+          setResultAnimationType('draw');
+          setResultAnimationAmount(0);
+        } else if (iWon) {
+          setResultAnimationType('win');
+          setResultAnimationAmount(active.pot * 0.95);
+        } else {
+          setResultAnimationType('lose');
+          setResultAnimationAmount(0);
+        }
+        setShowResultAnimation(true);
+      }
+      lastDuelStatusRef.current = active.game_phase;
+      
       setActiveDuel(active as Duel); 
       fetchMyCards(active.id);
       // Reset timer when turn changes
@@ -323,6 +345,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         setTimeLeft(TURN_TIME_SECONDS);
       }
     } else { 
+      lastDuelStatusRef.current = null;
       setActiveDuel(null); 
       setMyCards([]); 
       setCommunityCards([]); 
@@ -462,6 +485,16 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   return (
     <TooltipProvider>
       <div className="space-y-4">
+        {/* Result Animation */}
+        <PokerResultAnimation
+          result={resultAnimationType}
+          amount={resultAnimationAmount}
+          show={showResultAnimation}
+          onComplete={() => {
+            setShowResultAnimation(false);
+            onBalanceUpdate();
+          }}
+        />
         {/* Header with Rules */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">🃏 Poker Duel</h2>

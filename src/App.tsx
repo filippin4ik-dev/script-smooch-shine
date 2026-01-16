@@ -18,14 +18,14 @@ interface SnowContextType {
 
 const SnowContext = createContext<SnowContextType>({ isSnowEnabled: true, toggleSnow: () => {} });
 export const useSnowContext = () => useContext(SnowContext);
-// Component to handle profile redirect and clear state after navigation
-const ProfileRedirect = ({ publicId, onRedirect }: { publicId: string; onRedirect: () => void }) => {
+// Component to handle redirects and clear state after navigation
+const DeepLinkRedirect = ({ path, onRedirect }: { path: string; onRedirect: () => void }) => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    navigate(`/player/${publicId}`, { replace: true, state: { fromDeepLink: true } });
+    navigate(path, { replace: true, state: { fromDeepLink: true } });
     onRedirect();
-  }, [publicId, navigate, onRedirect]);
+  }, [path, navigate, onRedirect]);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-dark">
@@ -94,18 +94,22 @@ const queryClient = new QueryClient({
 const AppContent = () => {
   const { user, loading, isWebBrowser, startParam } = useTelegramAuth();
   const [isBanned, setIsBanned] = useState(false);
-  const [profileRedirect, setProfileRedirect] = useState<string | null>(null);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
   const [redirectHandled, setRedirectHandled] = useState(false);
   
   // Автопроверка обновлений каждые 30 сек
   useAppUpdate();
 
-  // Check for profile redirect from startParam
+  // Check for deep link redirects from startParam
   useEffect(() => {
-    if (startParam && startParam.startsWith("profile_") && !redirectHandled) {
-      const publicId = startParam.replace("profile_", "");
-      if (publicId) {
-        setProfileRedirect(publicId);
+    if (startParam && !redirectHandled) {
+      if (startParam.startsWith("profile_")) {
+        const publicId = startParam.replace("profile_", "");
+        if (publicId) {
+          setRedirectPath(`/player/${publicId}`);
+        }
+      } else if (startParam === "poker_duel") {
+        setRedirectPath("/poker-duel");
       }
     }
   }, [startParam, redirectHandled]);
@@ -202,8 +206,8 @@ const AppContent = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={
-            profileRedirect && !redirectHandled ? (
-              <ProfileRedirect publicId={profileRedirect} onRedirect={() => { setRedirectHandled(true); setProfileRedirect(null); }} />
+            redirectPath && !redirectHandled ? (
+              <DeepLinkRedirect path={redirectPath} onRedirect={() => { setRedirectHandled(true); setRedirectPath(null); }} />
             ) : <Index />
           } />
           <Route path="/admin" element={<Admin />} />
