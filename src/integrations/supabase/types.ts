@@ -1692,12 +1692,16 @@ export type Database = {
       }
       poker_duels: {
         Row: {
+          active_players_count: number | null
+          cards_per_player: number | null
           community_cards: Json | null
           created_at: string | null
           creator_cards: Json | null
           creator_current_bet: number
+          creator_folded: boolean | null
           creator_hand_rank: string | null
           creator_id: string
+          current_players: number | null
           current_raise_amount: number
           current_turn: string | null
           deck: Json | null
@@ -1708,22 +1712,40 @@ export type Database = {
           invited_user_id: string | null
           is_draw: boolean | null
           last_action_at: string | null
+          max_players: number | null
           opponent_cards: Json | null
           opponent_current_bet: number
+          opponent_folded: boolean | null
           opponent_hand_rank: string | null
           opponent_id: string | null
+          player3_cards: Json | null
+          player3_current_bet: number | null
+          player3_folded: boolean | null
+          player3_hand_rank: string | null
+          player3_id: string | null
+          player4_cards: Json | null
+          player4_current_bet: number | null
+          player4_folded: boolean | null
+          player4_hand_rank: string | null
+          player4_id: string | null
           pot: number
           started_at: string | null
           status: string | null
+          turn_order: Json | null
           winner_id: string | null
+          winners: Json | null
         }
         Insert: {
+          active_players_count?: number | null
+          cards_per_player?: number | null
           community_cards?: Json | null
           created_at?: string | null
           creator_cards?: Json | null
           creator_current_bet?: number
+          creator_folded?: boolean | null
           creator_hand_rank?: string | null
           creator_id: string
+          current_players?: number | null
           current_raise_amount?: number
           current_turn?: string | null
           deck?: Json | null
@@ -1734,22 +1756,40 @@ export type Database = {
           invited_user_id?: string | null
           is_draw?: boolean | null
           last_action_at?: string | null
+          max_players?: number | null
           opponent_cards?: Json | null
           opponent_current_bet?: number
+          opponent_folded?: boolean | null
           opponent_hand_rank?: string | null
           opponent_id?: string | null
+          player3_cards?: Json | null
+          player3_current_bet?: number | null
+          player3_folded?: boolean | null
+          player3_hand_rank?: string | null
+          player3_id?: string | null
+          player4_cards?: Json | null
+          player4_current_bet?: number | null
+          player4_folded?: boolean | null
+          player4_hand_rank?: string | null
+          player4_id?: string | null
           pot?: number
           started_at?: string | null
           status?: string | null
+          turn_order?: Json | null
           winner_id?: string | null
+          winners?: Json | null
         }
         Update: {
+          active_players_count?: number | null
+          cards_per_player?: number | null
           community_cards?: Json | null
           created_at?: string | null
           creator_cards?: Json | null
           creator_current_bet?: number
+          creator_folded?: boolean | null
           creator_hand_rank?: string | null
           creator_id?: string
+          current_players?: number | null
           current_raise_amount?: number
           current_turn?: string | null
           deck?: Json | null
@@ -1760,14 +1800,28 @@ export type Database = {
           invited_user_id?: string | null
           is_draw?: boolean | null
           last_action_at?: string | null
+          max_players?: number | null
           opponent_cards?: Json | null
           opponent_current_bet?: number
+          opponent_folded?: boolean | null
           opponent_hand_rank?: string | null
           opponent_id?: string | null
+          player3_cards?: Json | null
+          player3_current_bet?: number | null
+          player3_folded?: boolean | null
+          player3_hand_rank?: string | null
+          player3_id?: string | null
+          player4_cards?: Json | null
+          player4_current_bet?: number | null
+          player4_folded?: boolean | null
+          player4_hand_rank?: string | null
+          player4_id?: string | null
           pot?: number
           started_at?: string | null
           status?: string | null
+          turn_order?: Json | null
           winner_id?: string | null
+          winners?: Json | null
         }
         Relationships: [
           {
@@ -1808,6 +1862,34 @@ export type Database = {
           {
             foreignKeyName: "poker_duels_opponent_id_fkey"
             columns: ["opponent_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_player3_id_fkey"
+            columns: ["player3_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_player3_id_fkey"
+            columns: ["player3_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_player4_id_fkey"
+            columns: ["player4_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_player4_id_fkey"
+            columns: ["player4_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
@@ -3772,6 +3854,15 @@ export type Database = {
         Returns: Json
       }
       create_crash_round: { Args: never; Returns: Json }
+      create_multiplayer_poker_duel: {
+        Args: {
+          p_bet_amount: number
+          p_cards_per_player?: number
+          p_max_players?: number
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_poker_duel_v2: {
         Args: {
           p_creator_id: string
@@ -3973,12 +4064,16 @@ export type Database = {
       get_poker_invitations: {
         Args: { p_user_id: string }
         Returns: {
+          active_players_count: number | null
+          cards_per_player: number | null
           community_cards: Json | null
           created_at: string | null
           creator_cards: Json | null
           creator_current_bet: number
+          creator_folded: boolean | null
           creator_hand_rank: string | null
           creator_id: string
+          current_players: number | null
           current_raise_amount: number
           current_turn: string | null
           deck: Json | null
@@ -3989,14 +4084,28 @@ export type Database = {
           invited_user_id: string | null
           is_draw: boolean | null
           last_action_at: string | null
+          max_players: number | null
           opponent_cards: Json | null
           opponent_current_bet: number
+          opponent_folded: boolean | null
           opponent_hand_rank: string | null
           opponent_id: string | null
+          player3_cards: Json | null
+          player3_current_bet: number | null
+          player3_folded: boolean | null
+          player3_hand_rank: string | null
+          player3_id: string | null
+          player4_cards: Json | null
+          player4_current_bet: number | null
+          player4_folded: boolean | null
+          player4_hand_rank: string | null
+          player4_id: string | null
           pot: number
           started_at: string | null
           status: string | null
+          turn_order: Json | null
           winner_id: string | null
+          winners: Json | null
         }[]
         SetofOptions: {
           from: "*"
@@ -4334,6 +4443,10 @@ export type Database = {
         Args: { _giveaway_id: string; _user_id: string }
         Returns: Json
       }
+      join_multiplayer_poker_duel: {
+        Args: { p_duel_id: string; p_user_id: string }
+        Returns: Json
+      }
       join_poker_duel_v2: {
         Args: { p_duel_id: string; p_user_id: string }
         Returns: Json
@@ -4344,6 +4457,15 @@ export type Database = {
       }
       make_first_admin: { Args: never; Returns: undefined }
       mark_email_used: { Args: { _email_id: string }; Returns: undefined }
+      multiplayer_poker_action: {
+        Args: {
+          p_action: string
+          p_duel_id: string
+          p_raise_amount?: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       normalize_game_name: { Args: { _name: string }; Returns: string }
       notify_all_admins: { Args: { _message: string }; Returns: undefined }
       notify_user_action: {

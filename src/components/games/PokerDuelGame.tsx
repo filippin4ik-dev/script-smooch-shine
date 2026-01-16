@@ -5,13 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, Users, Trophy, Search, UserPlus, X, Check, RefreshCw, Clock, HelpCircle, Eye } from 'lucide-react';
+import { Loader2, Users, Trophy, Search, UserPlus, X, Check, RefreshCw, Clock, HelpCircle, Eye, Users2 } from 'lucide-react';
 import { sendTelegramNotification } from '@/lib/telegramNotifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { APP_CONFIG } from '@/lib/config';
 import { PokerResultAnimation } from './PokerResultAnimation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PokerDuelGameProps {
   visitorId: string;
@@ -23,6 +24,8 @@ interface Duel {
   id: string;
   creator_id: string;
   opponent_id: string | null;
+  player3_id: string | null;
+  player4_id: string | null;
   invited_user_id: string | null;
   initial_bet: number;
   pot: number;
@@ -31,17 +34,35 @@ interface Duel {
   current_turn: string | null;
   creator_current_bet: number;
   opponent_current_bet: number;
+  player3_current_bet: number;
+  player4_current_bet: number;
+  creator_folded: boolean;
+  opponent_folded: boolean;
+  player3_folded: boolean;
+  player4_folded: boolean;
   winner_id: string | null;
+  winners: string[] | null;
   creator_hand_rank: string | null;
   opponent_hand_rank: string | null;
+  player3_hand_rank: string | null;
+  player4_hand_rank: string | null;
   creator_cards: CardData[] | null;
   opponent_cards: CardData[] | null;
+  player3_cards: CardData[] | null;
+  player4_cards: CardData[] | null;
   community_cards: CardData[] | null;
   is_draw: boolean;
   created_at: string;
   last_action_at: string | null;
+  max_players: number;
+  current_players: number;
+  cards_per_player: number;
+  active_players_count: number;
+  turn_order: string[] | null;
   creator?: { username: string; public_id: number; avatar_url: string | null };
   opponent?: { username: string; public_id: number; avatar_url: string | null };
+  player3?: { username: string; public_id: number; avatar_url: string | null };
+  player4?: { username: string; public_id: number; avatar_url: string | null };
 }
 
 interface SearchUser {
@@ -55,6 +76,7 @@ interface SearchUser {
 interface CardData {
   suit: string;
   rank: string;
+  value?: string;
 }
 
 const SUITS_EMOJI: Record<string, string> = {
@@ -90,7 +112,7 @@ const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: Card
   if (hidden) {
     return (
       <div 
-        className="w-12 h-16 sm:w-14 sm:h-20 rounded-lg border-2 border-blue-500 flex items-center justify-center shadow-xl relative overflow-hidden"
+        className="w-10 h-14 sm:w-12 sm:h-16 rounded-lg border-2 border-blue-500 flex items-center justify-center shadow-xl relative overflow-hidden"
         style={{ 
           background: '#1e3a8a',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
@@ -107,16 +129,17 @@ const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: Card
           className="absolute inset-2 rounded border border-blue-400/50"
           style={{ background: 'rgba(30, 64, 175, 0.5)' }}
         />
-        <span className="text-xl sm:text-2xl relative z-10 drop-shadow-lg">🂠</span>
+        <span className="text-lg sm:text-xl relative z-10 drop-shadow-lg">🂠</span>
       </div>
     );
   }
 
+  const cardValue = card.rank || card.value;
   const suitColor = card.suit === 'hearts' || card.suit === 'diamonds' ? '#dc2626' : '#1f2937';
 
   return (
     <div 
-      className={`w-12 h-16 sm:w-14 sm:h-20 rounded-lg border-2 flex flex-col items-center justify-center shadow-xl transition-all relative overflow-hidden ${highlighted ? 'border-yellow-400 ring-2 ring-yellow-400 scale-110 z-10' : 'border-slate-300'}`}
+      className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg border-2 flex flex-col items-center justify-center shadow-xl transition-all relative overflow-hidden ${highlighted ? 'border-yellow-400 ring-2 ring-yellow-400 scale-110 z-10' : 'border-slate-300'}`}
       style={{ 
         background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
         boxShadow: highlighted 
@@ -124,8 +147,8 @@ const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: Card
           : '0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,1)'
       }}
     >
-      <span className="text-base sm:text-lg font-bold relative z-10" style={{ color: suitColor }}>{card.rank}</span>
-      <span className="text-lg sm:text-xl relative z-10" style={{ color: suitColor }}>{SUITS_EMOJI[card.suit]}</span>
+      <span className="text-sm sm:text-base font-bold relative z-10" style={{ color: suitColor }}>{cardValue}</span>
+      <span className="text-base sm:text-lg relative z-10" style={{ color: suitColor }}>{SUITS_EMOJI[card.suit]}</span>
     </div>
   );
 };
@@ -153,7 +176,7 @@ const TurnTimer = ({ timeLeft, isMyTurn }: { timeLeft: number; isMyTurn: boolean
 const HandRankDisplay = ({ rank, isWinner }: { rank: string; isWinner: boolean }) => {
   const translatedRank = HAND_RANK_RU[rank] || rank;
   return (
-    <div className={`text-sm mt-2 px-3 py-1 rounded-full font-medium ${isWinner ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' : 'bg-muted text-muted-foreground'}`}>
+    <div className={`text-xs mt-1 px-2 py-0.5 rounded-full font-medium ${isWinner ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' : 'bg-muted text-muted-foreground'}`}>
       {translatedRank}
     </div>
   );
@@ -161,37 +184,52 @@ const HandRankDisplay = ({ rank, isWinner }: { rank: string; isWinner: boolean }
 
 const RulesDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-md">
+    <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>📖 Правила Poker Duel</DialogTitle>
-        <DialogDescription>Texas Hold'em 1 на 1</DialogDescription>
+        <DialogDescription>Texas Hold'em для 2-4 игроков</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 text-sm">
         <div className="space-y-2">
           <h4 className="font-semibold text-primary">🎴 Как играть:</h4>
           <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-            <li>Каждый игрок получает 2 карты</li>
+            <li>Каждый игрок получает 2 или 3 карты</li>
             <li>На стол выкладываются 5 общих карт</li>
             <li>Составьте лучшую комбинацию из 5 карт</li>
           </ul>
         </div>
         <div className="space-y-2">
+          <h4 className="font-semibold text-primary">👥 Режимы:</h4>
+          <ul className="space-y-1 text-muted-foreground">
+            <li><Badge variant="outline" className="mr-2">2 игрока</Badge>Классическая дуэль</li>
+            <li><Badge variant="secondary" className="mr-2">3 игрока</Badge>Больше тактики</li>
+            <li><Badge className="mr-2">4 игрока</Badge>Максимальный азарт</li>
+          </ul>
+        </div>
+        <div className="space-y-2">
+          <h4 className="font-semibold text-primary">🃏 Количество карт:</h4>
+          <ul className="space-y-1 text-muted-foreground">
+            <li><Badge variant="outline" className="mr-2">2 карты</Badge>Классический Texas Hold'em</li>
+            <li><Badge variant="secondary" className="mr-2">3 карты</Badge>Больше комбинаций</li>
+          </ul>
+        </div>
+        <div className="space-y-2">
           <h4 className="font-semibold text-primary">🎯 Действия:</h4>
           <ul className="space-y-1 text-muted-foreground">
-            <li><Badge variant="outline" className="mr-2">Чек</Badge>Пропустить ход (если нечего уравнивать)</li>
-            <li><Badge variant="secondary" className="mr-2">Колл</Badge>Уравнять ставку противника</li>
+            <li><Badge variant="outline" className="mr-2">Чек</Badge>Пропустить ход</li>
+            <li><Badge variant="secondary" className="mr-2">Колл</Badge>Уравнять ставку</li>
             <li><Badge className="mr-2">Рейз</Badge>Повысить ставку</li>
-            <li><Badge variant="destructive" className="mr-2">Фолд</Badge>Сбросить карты (проигрыш)</li>
+            <li><Badge variant="destructive" className="mr-2">Фолд</Badge>Сбросить карты</li>
             <li><Badge variant="outline" className="mr-2 border-yellow-500 text-yellow-500">Ва-банк</Badge>Поставить всё</li>
           </ul>
         </div>
         <div className="space-y-2">
           <h4 className="font-semibold text-primary">⏱️ Время:</h4>
-          <p className="text-muted-foreground">30 секунд на ход. При истечении времени автоматически делается Чек (или Колл если нужно уравнять).</p>
+          <p className="text-muted-foreground">30 секунд на ход. При истечении — автоматический Чек/Колл.</p>
         </div>
         <div className="space-y-2">
-          <h4 className="font-semibold text-primary">💰 Комиссия:</h4>
-          <p className="text-muted-foreground">5% от выигрыша идёт казино.</p>
+          <h4 className="font-semibold text-primary">💰 Комиссия и Split Pot:</h4>
+          <p className="text-muted-foreground">5% комиссия казино. При ничьей банк делится поровну между победителями.</p>
         </div>
       </div>
     </DialogContent>
@@ -201,23 +239,26 @@ const RulesDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
 const GameHistoryDialog = ({ duel, open, onOpenChange, userId }: { duel: Duel | null; open: boolean; onOpenChange: (open: boolean) => void; userId: string | null }) => {
   if (!duel) return null;
   
-  const isCreator = duel.creator_id === userId;
-  const myCards = isCreator ? duel.creator_cards : duel.opponent_cards;
-  const oppCards = isCreator ? duel.opponent_cards : duel.creator_cards;
-  const myRank = isCreator ? duel.creator_hand_rank : duel.opponent_hand_rank;
-  const oppRank = isCreator ? duel.opponent_hand_rank : duel.creator_hand_rank;
-  const iWon = duel.winner_id === userId;
-  const oppWon = duel.winner_id && duel.winner_id !== userId;
+  const getPlayerSlot = (id: string) => {
+    if (id === duel.creator_id) return 'creator';
+    if (id === duel.opponent_id) return 'opponent';
+    if (id === duel.player3_id) return 'player3';
+    if (id === duel.player4_id) return 'player4';
+    return null;
+  };
+  
+  const mySlot = userId ? getPlayerSlot(userId) : null;
+  const iWon = duel.winner_id === userId || (duel.winners && duel.winners.includes(userId || ''));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {duel.is_draw ? '🤝 Ничья' : iWon ? '🏆 Победа!' : '❌ Поражение'}
           </DialogTitle>
           <DialogDescription>
-            vs {isCreator ? duel.opponent?.username : duel.creator?.username} • Банк: ${duel.pot?.toFixed(2)}
+            Банк: {duel.pot?.toFixed(2)}₽ • {duel.max_players} игрока
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -233,30 +274,123 @@ const GameHistoryDialog = ({ duel, open, onOpenChange, userId }: { duel: Duel | 
             </div>
           )}
           
-          {/* My Cards */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Ваши карты</p>
-            <div className="flex justify-center gap-2">
-              {myCards ? (myCards as CardData[]).map((card, i) => (
-                <PlayingCard key={i} card={card} highlighted={iWon} />
-              )) : <span className="text-muted-foreground">—</span>}
+          {/* All Players Cards */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Creator */}
+            <div className="text-center p-2 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">{duel.creator?.username}</p>
+              <div className="flex justify-center gap-1">
+                {duel.creator_cards ? (duel.creator_cards as CardData[]).map((card, i) => (
+                  <PlayingCard key={i} card={card} highlighted={duel.winners?.includes(duel.creator_id)} />
+                )) : <span className="text-muted-foreground text-xs">Фолд</span>}
+              </div>
+              {duel.creator_hand_rank && <HandRankDisplay rank={duel.creator_hand_rank} isWinner={duel.winners?.includes(duel.creator_id) || false} />}
             </div>
-            {myRank && <HandRankDisplay rank={myRank} isWinner={iWon && !duel.is_draw} />}
-          </div>
-          
-          {/* Opponent Cards */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Карты противника</p>
-            <div className="flex justify-center gap-2">
-              {oppCards ? (oppCards as CardData[]).map((card, i) => (
-                <PlayingCard key={i} card={card} highlighted={oppWon} />
-              )) : <span className="text-muted-foreground">—</span>}
-            </div>
-            {oppRank && <HandRankDisplay rank={oppRank} isWinner={oppWon && !duel.is_draw} />}
+            
+            {/* Opponent */}
+            {duel.opponent_id && (
+              <div className="text-center p-2 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">{duel.opponent?.username}</p>
+                <div className="flex justify-center gap-1">
+                  {duel.opponent_cards ? (duel.opponent_cards as CardData[]).map((card, i) => (
+                    <PlayingCard key={i} card={card} highlighted={duel.winners?.includes(duel.opponent_id!)} />
+                  )) : <span className="text-muted-foreground text-xs">Фолд</span>}
+                </div>
+                {duel.opponent_hand_rank && <HandRankDisplay rank={duel.opponent_hand_rank} isWinner={duel.winners?.includes(duel.opponent_id!) || false} />}
+              </div>
+            )}
+            
+            {/* Player 3 */}
+            {duel.player3_id && (
+              <div className="text-center p-2 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">{duel.player3?.username}</p>
+                <div className="flex justify-center gap-1">
+                  {duel.player3_cards ? (duel.player3_cards as CardData[]).map((card, i) => (
+                    <PlayingCard key={i} card={card} highlighted={duel.winners?.includes(duel.player3_id!)} />
+                  )) : <span className="text-muted-foreground text-xs">Фолд</span>}
+                </div>
+                {duel.player3_hand_rank && <HandRankDisplay rank={duel.player3_hand_rank} isWinner={duel.winners?.includes(duel.player3_id!) || false} />}
+              </div>
+            )}
+            
+            {/* Player 4 */}
+            {duel.player4_id && (
+              <div className="text-center p-2 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">{duel.player4?.username}</p>
+                <div className="flex justify-center gap-1">
+                  {duel.player4_cards ? (duel.player4_cards as CardData[]).map((card, i) => (
+                    <PlayingCard key={i} card={card} highlighted={duel.winners?.includes(duel.player4_id!)} />
+                  )) : <span className="text-muted-foreground text-xs">Фолд</span>}
+                </div>
+                {duel.player4_hand_rank && <HandRankDisplay rank={duel.player4_hand_rank} isWinner={duel.winners?.includes(duel.player4_id!) || false} />}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Player card component for multiplayer view
+const PlayerCardSlot = ({ 
+  player, 
+  cards, 
+  currentBet, 
+  handRank, 
+  isWinner, 
+  isFolded, 
+  isCurrentTurn, 
+  isMe,
+  showCards,
+  gamePhase 
+}: { 
+  player: { username: string; public_id: number } | undefined;
+  cards: CardData[] | null;
+  currentBet: number;
+  handRank: string | null;
+  isWinner: boolean;
+  isFolded: boolean;
+  isCurrentTurn: boolean;
+  isMe: boolean;
+  showCards: boolean;
+  gamePhase: string;
+}) => {
+  if (!player) return null;
+  
+  const bgColor = isFolded 
+    ? 'bg-gray-900/50 opacity-50' 
+    : isCurrentTurn 
+    ? 'bg-yellow-900/30 ring-2 ring-yellow-500' 
+    : isMe 
+    ? 'bg-green-900/30' 
+    : 'bg-red-900/20';
+
+  return (
+    <div className={`text-center rounded-lg p-2 ${bgColor} transition-all`}>
+      <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
+        {isMe ? '🎮' : '👤'} {player.username}
+        {isFolded && <Badge variant="destructive" className="text-[10px] px-1 py-0">Фолд</Badge>}
+        {isCurrentTurn && !isFolded && <Badge variant="default" className="text-[10px] px-1 py-0 animate-pulse">Ход</Badge>}
+      </p>
+      <div className="flex justify-center gap-0.5">
+        {isFolded ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : cards && (showCards || isMe) ? (
+          cards.map((card, i) => (
+            <PlayingCard key={i} card={card} highlighted={isWinner && gamePhase === 'showdown'} />
+          ))
+        ) : (
+          Array(3).fill(0).map((_, i) => <PlayingCard key={i} card={{ suit: 'spades', rank: '?' }} hidden />)
+        )}
+      </div>
+      {gamePhase === 'showdown' && handRank && !isFolded && (
+        <HandRankDisplay rank={handRank} isWinner={isWinner} />
+      )}
+      <p className="text-[10px] mt-1 text-muted-foreground">
+        Ставка: {currentBet?.toFixed(0) || 0}₽
+      </p>
+    </div>
   );
 };
 
@@ -265,12 +399,14 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [userId, setUserId] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState('100');
   const [raiseAmount, setRaiseAmount] = useState('50');
+  const [maxPlayers, setMaxPlayers] = useState('2');
+  const [cardsPerPlayer, setCardsPerPlayer] = useState('3');
   const [availableDuels, setAvailableDuels] = useState<Duel[]>([]);
   const [myInvitations, setMyInvitations] = useState<Duel[]>([]);
   const [activeDuel, setActiveDuel] = useState<Duel | null>(null);
   const [myCards, setMyCards] = useState<CardData[]>([]);
   const [communityCards, setCommunityCards] = useState<CardData[]>([]);
-  const [opponentCards, setOpponentCards] = useState<CardData[] | null>(null);
+  const [allPlayerCards, setAllPlayerCards] = useState<Record<string, CardData[]>>({});
   const [recentGames, setRecentGames] = useState<Duel[]>([]);
   const [creatingDuel, setCreatingDuel] = useState(false);
   const [joiningDuelId, setJoiningDuelId] = useState<string | null>(null);
@@ -299,31 +435,104 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
 
   const fetchMyCards = useCallback(async (duelId: string) => {
     if (!userId) return;
-    const { data } = await supabase.rpc('get_my_poker_cards', { p_duel_id: duelId, p_user_id: userId });
-    if (data) {
-      setMyCards(data.my_cards || []);
-      setCommunityCards(data.community_cards || []);
-      setOpponentCards(data.opponent_cards || null);
+    // Try to get cards from the duel itself first for multiplayer
+    const { data: duel } = await supabase
+      .from('poker_duels')
+      .select('creator_id, opponent_id, player3_id, player4_id, creator_cards, opponent_cards, player3_cards, player4_cards, community_cards, game_phase')
+      .eq('id', duelId)
+      .single();
+    
+    if (duel) {
+      // Set my cards based on my role
+      if (userId === duel.creator_id && duel.creator_cards) {
+        setMyCards(duel.creator_cards as CardData[]);
+      } else if (userId === duel.opponent_id && duel.opponent_cards) {
+        setMyCards(duel.opponent_cards as CardData[]);
+      } else if (userId === duel.player3_id && duel.player3_cards) {
+        setMyCards(duel.player3_cards as CardData[]);
+      } else if (userId === duel.player4_id && duel.player4_cards) {
+        setMyCards(duel.player4_cards as CardData[]);
+      }
+      
+      setCommunityCards(duel.community_cards as CardData[] || []);
+      
+      // If showdown, show all cards
+      if (duel.game_phase === 'showdown') {
+        const allCards: Record<string, CardData[]> = {};
+        if (duel.creator_cards) allCards[duel.creator_id] = duel.creator_cards as CardData[];
+        if (duel.opponent_id && duel.opponent_cards) allCards[duel.opponent_id] = duel.opponent_cards as CardData[];
+        if (duel.player3_id && duel.player3_cards) allCards[duel.player3_id] = duel.player3_cards as CardData[];
+        if (duel.player4_id && duel.player4_cards) allCards[duel.player4_id] = duel.player4_cards as CardData[];
+        setAllPlayerCards(allCards);
+      } else {
+        setAllPlayerCards({});
+      }
     }
   }, [userId]);
 
   const fetchDuels = useCallback(async () => {
     if (!userId) return;
-    const { data: available } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`).eq('status', 'waiting').neq('creator_id', userId).is('invited_user_id', null).order('created_at', { ascending: false }).limit(20);
-    const { data: invitations } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`).eq('invited_user_id', userId).eq('status', 'invited').order('created_at', { ascending: false });
-    const { data: active } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`).eq('status', 'betting').or(`creator_id.eq.${userId},opponent_id.eq.${userId}`).maybeSingle();
-    const { data: myWaiting } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`).eq('creator_id', userId).in('status', ['waiting', 'invited']).order('created_at', { ascending: false });
-    const { data: recent } = await supabase.from('poker_duels').select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url), creator_cards, opponent_cards, community_cards`).eq('status', 'finished').or(`creator_id.eq.${userId},opponent_id.eq.${userId}`).order('finished_at', { ascending: false }).limit(10);
+    
+    // Fetch available duels (waiting for players)
+    const { data: available } = await supabase
+      .from('poker_duels')
+      .select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`)
+      .eq('status', 'waiting')
+      .neq('creator_id', userId)
+      .is('invited_user_id', null)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    
+    // Fetch my invitations
+    const { data: invitations } = await supabase
+      .from('poker_duels')
+      .select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`)
+      .eq('invited_user_id', userId)
+      .eq('status', 'invited')
+      .order('created_at', { ascending: false });
+    
+    // Fetch active game (either playing or waiting with me in it)
+    const { data: active } = await supabase
+      .from('poker_duels')
+      .select(`*, 
+        creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), 
+        opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`)
+      .in('status', ['playing', 'betting'])
+      .or(`creator_id.eq.${userId},opponent_id.eq.${userId},player3_id.eq.${userId},player4_id.eq.${userId}`)
+      .maybeSingle();
+    
+    // Also fetch waiting games where I'm the creator or already joined
+    const { data: myWaiting } = await supabase
+      .from('poker_duels')
+      .select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`)
+      .in('status', ['waiting', 'invited'])
+      .or(`creator_id.eq.${userId},opponent_id.eq.${userId},player3_id.eq.${userId},player4_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+    
+    // Fetch recent games
+    const { data: recent } = await supabase
+      .from('poker_duels')
+      .select(`*, 
+        creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), 
+        opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url),
+        creator_cards, opponent_cards, player3_cards, player4_cards, community_cards`)
+      .eq('status', 'finished')
+      .or(`creator_id.eq.${userId},opponent_id.eq.${userId},player3_id.eq.${userId},player4_id.eq.${userId}`)
+      .order('finished_at', { ascending: false })
+      .limit(10);
+    
     setAvailableDuels([...(myWaiting || []), ...(available || [])] as Duel[]);
     setMyInvitations((invitations || []) as Duel[]);
     setRecentGames((recent || []) as Duel[]);
+    
     if (active) { 
       // Check if game just ended - trigger animation
       if (active.game_phase === 'showdown' && lastDuelStatusRef.current !== 'showdown') {
-        const iWon = active.winner_id === userId;
-        if (active.is_draw) {
+        const iWon = active.winner_id === userId || (active.winners && (active.winners as string[]).includes(userId));
+        if (active.is_draw || (active.winners && (active.winners as string[]).length > 1)) {
           setResultAnimationType('draw');
-          setResultAnimationAmount(0);
+          const winnersCount = active.winners ? (active.winners as string[]).length : 2;
+          setResultAnimationAmount((active.pot * 0.95) / winnersCount);
         } else if (iWon) {
           setResultAnimationType('win');
           setResultAnimationAmount(active.pot * 0.95);
@@ -337,6 +546,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       
       setActiveDuel(active as Duel); 
       fetchMyCards(active.id);
+      
       // Reset timer when turn changes
       if (active.last_action_at) {
         const elapsed = Math.floor((Date.now() - new Date(active.last_action_at).getTime()) / 1000);
@@ -349,16 +559,14 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       setActiveDuel(null); 
       setMyCards([]); 
       setCommunityCards([]); 
-      setOpponentCards(null); 
+      setAllPlayerCards({});
     }
   }, [userId, fetchMyCards]);
 
   const searchUsers = async () => {
     if (!searchQuery.trim() || !userId) return;
     setSearchLoading(true);
-    console.log('Searching users:', searchQuery.trim(), userId);
     const { data, error } = await supabase.rpc('search_users_for_duel', { search_query: searchQuery.trim(), current_user_id: userId });
-    console.log('Search result:', data, error);
     if (data) setSearchResults(data as SearchUser[]);
     setSearchLoading(false);
   };
@@ -368,25 +576,45 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     const amount = parseFloat(betAmount);
     if (isNaN(amount) || amount < 10) { toast.error('Минимальная ставка 10₽'); return; }
     if (amount > balance) { toast.error('Недостаточно средств'); return; }
+    
     setCreatingDuel(true);
-    console.log('Creating duel:', userId, amount, invitedUserId);
-    const { data, error } = await supabase.rpc('create_poker_duel_v2', { p_creator_id: userId, p_initial_bet: amount, p_invited_user_id: invitedUserId || null });
+    
+    const numPlayers = parseInt(maxPlayers);
+    const numCards = parseInt(cardsPerPlayer);
+    
+    console.log('Creating multiplayer duel:', { userId, amount, numPlayers, numCards, invitedUserId });
+    
+    // Use multiplayer function
+    const { data, error } = await supabase.rpc('create_multiplayer_poker_duel', { 
+      p_user_id: userId, 
+      p_bet_amount: Math.floor(amount), 
+      p_max_players: numPlayers,
+      p_cards_per_player: numCards
+    });
+    
     console.log('Create duel result:', data, error);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(invitedUserId ? 'Приглашение отправлено!' : 'Дуэль создана!');
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`Лобби на ${numPlayers} игроков создано!`);
       if (invitedUserId && selectedUser) {
         const { data: invitedProfile } = await supabase.from('profiles').select('telegram_id').eq('id', invitedUserId).single();
         if (invitedProfile?.telegram_id) {
           const pokerLink = APP_CONFIG.getPokerDuelLink();
           await sendTelegramNotification({ 
             telegramId: invitedProfile.telegram_id, 
-            message: `🃏 Вас приглашают на покерную дуэль!\n\nСтавка: ${amount}₽\n\n👉 Принять приглашение: ${pokerLink}`, 
+            message: `🃏 Вас приглашают на покер ${numPlayers} игрока!\n\nСтавка: ${amount}₽\nКарт на руках: ${numCards}\n\n👉 Принять: ${pokerLink}`, 
             notificationType: 'custom' 
           });
         }
       }
-      onBalanceUpdate(); fetchDuels(); setShowInviteDialog(false); setSelectedUser(null); setSearchQuery(''); setSearchResults([]);
+      onBalanceUpdate(); 
+      fetchDuels(); 
+      setShowInviteDialog(false); 
+      setSelectedUser(null); 
+      setSearchQuery(''); 
+      setSearchResults([]);
     }
     setCreatingDuel(false);
   };
@@ -394,36 +622,67 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const cancelDuel = async (duelId: string) => {
     if (!userId) return;
     const { error } = await supabase.rpc('cancel_poker_duel_v2', { p_duel_id: duelId, p_user_id: userId });
-    if (error) toast.error(error.message); else { toast.success('Дуэль отменена'); onBalanceUpdate(); fetchDuels(); }
+    if (error) toast.error(error.message); 
+    else { toast.success('Дуэль отменена'); onBalanceUpdate(); fetchDuels(); }
   };
 
   const declineDuel = async (duelId: string) => {
     if (!userId) return;
     const { error } = await supabase.rpc('decline_poker_duel', { p_duel_id: duelId, p_user_id: userId });
-    if (error) toast.error(error.message); else { toast.success('Приглашение отклонено'); fetchDuels(); }
+    if (error) toast.error(error.message); 
+    else { toast.success('Приглашение отклонено'); fetchDuels(); }
   };
 
   const joinDuel = async (duelId: string) => {
     if (!userId) return;
     setJoiningDuelId(duelId);
-    const { error } = await supabase.rpc('join_poker_duel_v2', { p_duel_id: duelId, p_user_id: userId });
-    if (error) toast.error(error.message); else { toast.success('Игра началась!'); onBalanceUpdate(); fetchDuels(); }
+    
+    // Use multiplayer join function
+    const { data, error } = await supabase.rpc('join_multiplayer_poker_duel', { 
+      p_duel_id: duelId, 
+      p_user_id: userId 
+    });
+    
+    if (error) {
+      toast.error(error.message);
+    } else if (data) {
+      if (data.game_started) {
+        toast.success('Игра началась!');
+      } else {
+        toast.success('Вы присоединились к лобби!');
+      }
+      onBalanceUpdate(); 
+      fetchDuels();
+    }
     setJoiningDuelId(null);
   };
 
   const performAction = async (action: string, raiseAmt?: number) => {
     if (!userId || !activeDuel) return;
     setActionLoading(true);
-    const { data, error } = await supabase.rpc('poker_betting_action', { p_duel_id: activeDuel.id, p_user_id: userId, p_action: action, p_raise_amount: raiseAmt || 0 });
-    if (error) toast.error(error.message);
-    else if (data) {
-      if (data.action === 'fold') toast.info('Вы сбросили карты');
-      else if (data.new_phase === 'showdown') {
-        if (data.is_draw) toast.info('Ничья! Банк поделен');
-        else if (data.winner_id === userId) toast.success(`Вы выиграли ${data.win_amount?.toFixed(2)}₽!`);
-        else toast.error('Вы проиграли');
+    
+    // Use multiplayer action function
+    const { data, error } = await supabase.rpc('multiplayer_poker_action', { 
+      p_duel_id: activeDuel.id, 
+      p_user_id: userId, 
+      p_action: action, 
+      p_raise_amount: raiseAmt || 0 
+    });
+    
+    if (error) {
+      toast.error(error.message);
+    } else if (data) {
+      if (action === 'fold') toast.info('Вы сбросили карты');
+      else if (data.game_ended) {
+        const winners = data.winners as string[];
+        if (winners && winners.includes(userId)) {
+          toast.success('Вы выиграли!');
+        } else {
+          toast.error('Вы проиграли');
+        }
       }
-      onBalanceUpdate(); fetchDuels();
+      onBalanceUpdate(); 
+      fetchDuels();
       setTimeLeft(TURN_TIME_SECONDS);
     }
     setActionLoading(false);
@@ -431,7 +690,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
 
   // Timer effect
   useEffect(() => {
-    if (!activeDuel || activeDuel.game_phase === 'showdown') {
+    if (!activeDuel || activeDuel.game_phase === 'showdown' || activeDuel.status !== 'playing') {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
@@ -443,9 +702,21 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         if (prev <= 1) {
           // Auto-action when time runs out
           if (isMyTurn && !actionLoading) {
-            const opponentBet = activeDuel.creator_id === userId ? activeDuel.opponent_current_bet : activeDuel.creator_current_bet;
-            const myBet = activeDuel.creator_id === userId ? activeDuel.creator_current_bet : activeDuel.opponent_current_bet;
-            const callAmount = Math.max(0, (opponentBet || 0) - (myBet || 0));
+            // Calculate call amount based on all players
+            const maxBet = Math.max(
+              activeDuel.creator_current_bet || 0,
+              activeDuel.opponent_current_bet || 0,
+              activeDuel.player3_current_bet || 0,
+              activeDuel.player4_current_bet || 0
+            );
+            
+            let myBet = 0;
+            if (userId === activeDuel.creator_id) myBet = activeDuel.creator_current_bet || 0;
+            else if (userId === activeDuel.opponent_id) myBet = activeDuel.opponent_current_bet || 0;
+            else if (userId === activeDuel.player3_id) myBet = activeDuel.player3_current_bet || 0;
+            else if (userId === activeDuel.player4_id) myBet = activeDuel.player4_current_bet || 0;
+            
+            const callAmount = maxBet - myBet;
             
             if (callAmount === 0) {
               performAction('check');
@@ -464,23 +735,52 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     };
   }, [activeDuel?.id, activeDuel?.current_turn, userId, actionLoading]);
 
-  useEffect(() => { if (!userId) return; const channel = supabase.channel('poker_duels_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'poker_duels' }, () => { fetchDuels(); }).subscribe(); return () => { supabase.removeChannel(channel); }; }, [userId, fetchDuels]);
+  useEffect(() => { 
+    if (!userId) return; 
+    const channel = supabase.channel('poker_duels_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_duels' }, () => { fetchDuels(); })
+      .subscribe(); 
+    return () => { supabase.removeChannel(channel); }; 
+  }, [userId, fetchDuels]);
+  
   useEffect(() => { fetchUserId(); }, [fetchUserId]);
   useEffect(() => { if (userId) fetchDuels(); }, [userId, fetchDuels]);
   useEffect(() => { if (activeDuel && userId) fetchMyCards(activeDuel.id); }, [activeDuel?.id, activeDuel?.game_phase, userId, fetchMyCards]);
 
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
+  // Determine my role and calculate values
+  const getMyRole = () => {
+    if (!activeDuel || !userId) return null;
+    if (userId === activeDuel.creator_id) return 'creator';
+    if (userId === activeDuel.opponent_id) return 'opponent';
+    if (userId === activeDuel.player3_id) return 'player3';
+    if (userId === activeDuel.player4_id) return 'player4';
+    return null;
+  };
+
+  const myRole = getMyRole();
   const isMyTurn = activeDuel?.current_turn === userId;
-  const isCreator = activeDuel?.creator_id === userId;
-  const myCurrentBet = isCreator ? activeDuel?.creator_current_bet : activeDuel?.opponent_current_bet;
-  const opponentCurrentBet = isCreator ? activeDuel?.opponent_current_bet : activeDuel?.creator_current_bet;
-  const callAmount = Math.max(0, (opponentCurrentBet || 0) - (myCurrentBet || 0));
+  
+  // Calculate call amount
+  const maxBet = activeDuel ? Math.max(
+    activeDuel.creator_current_bet || 0,
+    activeDuel.opponent_current_bet || 0,
+    activeDuel.player3_current_bet || 0,
+    activeDuel.player4_current_bet || 0
+  ) : 0;
+  
+  const myCurrentBet = activeDuel ? (
+    myRole === 'creator' ? activeDuel.creator_current_bet :
+    myRole === 'opponent' ? activeDuel.opponent_current_bet :
+    myRole === 'player3' ? activeDuel.player3_current_bet :
+    myRole === 'player4' ? activeDuel.player4_current_bet : 0
+  ) : 0;
+  
+  const callAmount = Math.max(0, maxBet - (myCurrentBet || 0));
   const canCheck = callAmount === 0;
-  const myHandRank = isCreator ? activeDuel?.creator_hand_rank : activeDuel?.opponent_hand_rank;
-  const oppHandRank = isCreator ? activeDuel?.opponent_hand_rank : activeDuel?.creator_hand_rank;
-  const iWon = activeDuel?.winner_id === userId;
-  const oppWon = activeDuel?.winner_id && activeDuel.winner_id !== userId;
+  
+  const iWon = activeDuel?.winner_id === userId || (activeDuel?.winners && activeDuel.winners.includes(userId || ''));
 
   return (
     <TooltipProvider>
@@ -495,6 +795,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
             onBalanceUpdate();
           }}
         />
+        
         {/* Header with Rules */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">🃏 Poker Duel</h2>
@@ -505,18 +806,18 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         </div>
 
         {/* Active Game */}
-        {activeDuel && (
+        {activeDuel && activeDuel.status === 'playing' && (
           <Card className="p-4 bg-gradient-to-br from-green-900/50 to-green-800/30 border-green-600">
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Game Header */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-base font-bold text-green-400">🎴 Активная игра</h3>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-                    Банк: {activeDuel.pot?.toFixed(2)}₽
+                    Банк: {activeDuel.pot?.toFixed(0)}₽
                   </Badge>
-                  <Badge variant={isMyTurn ? 'default' : 'secondary'}>
-                    {isMyTurn ? '🎯 Ваш ход' : '⏳ Ход противника'}
+                  <Badge variant="secondary">
+                    {activeDuel.max_players} игрока • {activeDuel.cards_per_player || 2} карты
                   </Badge>
                 </div>
               </div>
@@ -529,113 +830,123 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
               {/* Phase Indicator */}
               <div className="text-center">
                 <Badge variant="outline" className="text-xs">
-                  {activeDuel.game_phase === 'betting_round_1' && '📍 Раунд 1 — Префлоп'}
-                  {activeDuel.game_phase === 'betting_round_2' && '📍 Раунд 2 — Флоп'}
-                  {activeDuel.game_phase === 'showdown' && '🎉 Вскрытие карт!'}
+                  {activeDuel.game_phase === 'preflop' && '📍 Префлоп'}
+                  {activeDuel.game_phase === 'flop' && '📍 Флоп'}
+                  {activeDuel.game_phase === 'turn' && '📍 Тёрн'}
+                  {activeDuel.game_phase === 'river' && '📍 Ривер'}
+                  {activeDuel.game_phase === 'showdown' && '🎉 Вскрытие!'}
                 </Badge>
               </div>
 
               {/* Community Cards */}
               {communityCards.length > 0 && (
-                <div className="text-center bg-black/20 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-2">🃏 Общие карты</p>
-                  <div className="flex justify-center gap-1 sm:gap-2 flex-wrap">
+                <div className="text-center bg-black/20 rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground mb-1">🃏 Общие карты</p>
+                  <div className="flex justify-center gap-1 flex-wrap">
                     {communityCards.map((card, i) => <PlayingCard key={i} card={card} />)}
-                    {activeDuel.game_phase === 'betting_round_2' && Array(2).fill(0).map((_, i) => (
-                      <PlayingCard key={`h-${i}`} card={{ suit: 'spades', rank: '?' }} hidden />
-                    ))}
                   </div>
                 </div>
               )}
 
-              {/* Players Cards */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* All Players Grid */}
+              <div className={`grid gap-2 ${activeDuel.max_players <= 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                {/* Creator */}
+                <PlayerCardSlot
+                  player={activeDuel.creator}
+                  cards={allPlayerCards[activeDuel.creator_id] || (myRole === 'creator' ? myCards : null)}
+                  currentBet={activeDuel.creator_current_bet || 0}
+                  handRank={activeDuel.creator_hand_rank}
+                  isWinner={activeDuel.winners?.includes(activeDuel.creator_id) || activeDuel.winner_id === activeDuel.creator_id}
+                  isFolded={activeDuel.creator_folded}
+                  isCurrentTurn={activeDuel.current_turn === activeDuel.creator_id}
+                  isMe={myRole === 'creator'}
+                  showCards={activeDuel.game_phase === 'showdown'}
+                  gamePhase={activeDuel.game_phase}
+                />
+                
                 {/* Opponent */}
-                <div className="text-center bg-red-900/20 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    👤 {isCreator ? activeDuel.opponent?.username : activeDuel.creator?.username}
-                  </p>
-                  <div className="flex justify-center gap-1">
-                    {opponentCards ? opponentCards.map((card, i) => (
-                      <PlayingCard key={i} card={card} highlighted={oppWon && activeDuel.game_phase === 'showdown'} />
-                    )) : (
-                      <>
-                        <PlayingCard card={{ suit: 'spades', rank: '?' }} hidden />
-                        <PlayingCard card={{ suit: 'spades', rank: '?' }} hidden />
-                      </>
-                    )}
-                  </div>
-                  {activeDuel.game_phase === 'showdown' && oppHandRank && (
-                    <HandRankDisplay rank={oppHandRank} isWinner={oppWon && !activeDuel.is_draw} />
-                  )}
-                  <p className="text-xs mt-2 text-muted-foreground">
-                    Ставка: {opponentCurrentBet?.toFixed(2)}₽
-                  </p>
-                </div>
-
-                {/* Me */}
-                <div className="text-center bg-green-900/20 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-2">🎮 Ваши карты</p>
-                  <div className="flex justify-center gap-1">
-                    {myCards.map((card, i) => (
-                      <PlayingCard key={i} card={card} highlighted={iWon && activeDuel.game_phase === 'showdown'} />
-                    ))}
-                  </div>
-                  {activeDuel.game_phase === 'showdown' && myHandRank && (
-                    <HandRankDisplay rank={myHandRank} isWinner={iWon && !activeDuel.is_draw} />
-                  )}
-                  <p className="text-xs mt-2 text-muted-foreground">
-                    Ставка: {myCurrentBet?.toFixed(2)}₽
-                  </p>
-                </div>
+                {activeDuel.opponent_id && (
+                  <PlayerCardSlot
+                    player={activeDuel.opponent}
+                    cards={allPlayerCards[activeDuel.opponent_id] || (myRole === 'opponent' ? myCards : null)}
+                    currentBet={activeDuel.opponent_current_bet || 0}
+                    handRank={activeDuel.opponent_hand_rank}
+                    isWinner={activeDuel.winners?.includes(activeDuel.opponent_id) || activeDuel.winner_id === activeDuel.opponent_id}
+                    isFolded={activeDuel.opponent_folded}
+                    isCurrentTurn={activeDuel.current_turn === activeDuel.opponent_id}
+                    isMe={myRole === 'opponent'}
+                    showCards={activeDuel.game_phase === 'showdown'}
+                    gamePhase={activeDuel.game_phase}
+                  />
+                )}
+                
+                {/* Player 3 */}
+                {activeDuel.player3_id && (
+                  <PlayerCardSlot
+                    player={activeDuel.player3}
+                    cards={allPlayerCards[activeDuel.player3_id] || (myRole === 'player3' ? myCards : null)}
+                    currentBet={activeDuel.player3_current_bet || 0}
+                    handRank={activeDuel.player3_hand_rank}
+                    isWinner={activeDuel.winners?.includes(activeDuel.player3_id) || activeDuel.winner_id === activeDuel.player3_id}
+                    isFolded={activeDuel.player3_folded}
+                    isCurrentTurn={activeDuel.current_turn === activeDuel.player3_id}
+                    isMe={myRole === 'player3'}
+                    showCards={activeDuel.game_phase === 'showdown'}
+                    gamePhase={activeDuel.game_phase}
+                  />
+                )}
+                
+                {/* Player 4 */}
+                {activeDuel.player4_id && (
+                  <PlayerCardSlot
+                    player={activeDuel.player4}
+                    cards={allPlayerCards[activeDuel.player4_id] || (myRole === 'player4' ? myCards : null)}
+                    currentBet={activeDuel.player4_current_bet || 0}
+                    handRank={activeDuel.player4_hand_rank}
+                    isWinner={activeDuel.winners?.includes(activeDuel.player4_id) || activeDuel.winner_id === activeDuel.player4_id}
+                    isFolded={activeDuel.player4_folded}
+                    isCurrentTurn={activeDuel.current_turn === activeDuel.player4_id}
+                    isMe={myRole === 'player4'}
+                    showCards={activeDuel.game_phase === 'showdown'}
+                    gamePhase={activeDuel.game_phase}
+                  />
+                )}
               </div>
 
               {/* Action Buttons */}
               {isMyTurn && activeDuel.game_phase !== 'showdown' && (
-                <div className="space-y-3 pt-3 border-t border-border/50">
+                <div className="space-y-2 pt-2 border-t border-border/50">
                   <div className="flex gap-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          onClick={() => performAction('fold')} 
-                          variant="destructive" 
-                          disabled={actionLoading} 
-                          className="flex-1"
-                        >
-                          ❌ Фолд
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Сбросить карты и проиграть банк</TooltipContent>
-                    </Tooltip>
+                    <Button 
+                      onClick={() => performAction('fold')} 
+                      variant="destructive" 
+                      disabled={actionLoading} 
+                      className="flex-1"
+                      size="sm"
+                    >
+                      ❌ Фолд
+                    </Button>
                     
                     {canCheck ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            onClick={() => performAction('check')} 
-                            variant="outline" 
-                            disabled={actionLoading} 
-                            className="flex-1"
-                          >
-                            ✓ Чек
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Пропустить ход без ставки</TooltipContent>
-                      </Tooltip>
+                      <Button 
+                        onClick={() => performAction('check')} 
+                        variant="outline" 
+                        disabled={actionLoading} 
+                        className="flex-1"
+                        size="sm"
+                      >
+                        ✓ Чек
+                      </Button>
                     ) : (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            onClick={() => performAction('call')} 
-                            variant="secondary" 
-                            disabled={actionLoading} 
-                            className="flex-1"
-                          >
-                            📞 Колл {callAmount.toFixed(2)}₽
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Уравнять ставку противника</TooltipContent>
-                      </Tooltip>
+                      <Button 
+                        onClick={() => performAction('call')} 
+                        variant="secondary" 
+                        disabled={actionLoading} 
+                        className="flex-1"
+                        size="sm"
+                      >
+                        📞 Колл {callAmount}₽
+                      </Button>
                     )}
                   </div>
                   
@@ -644,50 +955,62 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                       type="number" 
                       value={raiseAmount} 
                       onChange={(e) => setRaiseAmount(e.target.value)} 
-                      placeholder="Сумма рейза" 
+                      placeholder="Рейз" 
                       className="flex-1" 
                     />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          onClick={() => performAction('raise', parseFloat(raiseAmount) || 0)} 
-                          disabled={actionLoading || !raiseAmount} 
-                          className="flex-1"
-                        >
-                          ⬆️ Рейз
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Повысить ставку</TooltipContent>
-                    </Tooltip>
+                    <Button 
+                      onClick={() => performAction('raise', parseFloat(raiseAmount) || 0)} 
+                      disabled={actionLoading || !raiseAmount} 
+                      className="flex-1"
+                      size="sm"
+                    >
+                      ⬆️ Рейз
+                    </Button>
                   </div>
                   
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        onClick={() => performAction('all_in')} 
-                        variant="outline" 
-                        disabled={actionLoading} 
-                        className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
-                      >
-                        🔥 Ва-банк (All-In)
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Поставить все свои фишки</TooltipContent>
-                  </Tooltip>
+                  <Button 
+                    onClick={() => performAction('all-in')} 
+                    variant="outline" 
+                    disabled={actionLoading} 
+                    className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
+                    size="sm"
+                  >
+                    🔥 Ва-банк
+                  </Button>
                 </div>
               )}
 
               {/* Showdown Result */}
               {activeDuel.game_phase === 'showdown' && (
-                <div className={`text-center p-4 rounded-lg ${activeDuel.is_draw ? 'bg-blue-900/30' : iWon ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
-                  <p className="text-2xl font-bold">
-                    {activeDuel.is_draw ? '🤝 Ничья!' : iWon ? '🏆 Победа!' : '❌ Поражение'}
+                <div className={`text-center p-3 rounded-lg ${activeDuel.is_draw ? 'bg-blue-900/30' : iWon ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                  <p className="text-xl font-bold">
+                    {activeDuel.is_draw || (activeDuel.winners && activeDuel.winners.length > 1) ? '🤝 Банк поделён!' : iWon ? '🏆 Победа!' : '❌ Поражение'}
                   </p>
-                  {!activeDuel.is_draw && iWon && (
-                    <p className="text-yellow-400 mt-1">Выигрыш: {(activeDuel.pot * 0.95).toFixed(2)}₽</p>
+                  {iWon && (
+                    <p className="text-yellow-400 mt-1">
+                      Выигрыш: {((activeDuel.pot * 0.95) / (activeDuel.winners?.length || 1)).toFixed(0)}₽
+                    </p>
                   )}
                 </div>
               )}
+            </div>
+          </Card>
+        )}
+
+        {/* Waiting Lobby */}
+        {activeDuel && activeDuel.status === 'waiting' && activeDuel.creator_id === userId && (
+          <Card className="p-4 bg-gradient-to-br from-blue-900/50 to-blue-800/30 border-blue-600">
+            <div className="space-y-3 text-center">
+              <h3 className="text-base font-bold text-blue-400">⏳ Ожидание игроков</h3>
+              <div className="flex items-center justify-center gap-2">
+                <Users2 className="w-5 h-5" />
+                <span className="text-lg font-bold">{activeDuel.current_players} / {activeDuel.max_players}</span>
+              </div>
+              <Badge variant="outline">{activeDuel.cards_per_player} карты • {activeDuel.initial_bet}₽</Badge>
+              <Progress value={(activeDuel.current_players / activeDuel.max_players) * 100} className="h-2" />
+              <Button variant="destructive" size="sm" onClick={() => cancelDuel(activeDuel.id)}>
+                Отменить
+              </Button>
             </div>
           </Card>
         )}
@@ -704,7 +1027,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">{duel.creator?.username}</p>
-                    <p className="text-xs text-muted-foreground">Ставка: {duel.initial_bet}₽</p>
+                    <p className="text-xs text-muted-foreground">
+                      {duel.initial_bet}₽ • {duel.max_players} игрока • {duel.cards_per_player} карты
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="destructive" onClick={() => declineDuel(duel.id)}>
@@ -727,36 +1052,53 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         {/* Create Duel */}
         {!activeDuel && (
           <Card className="p-4">
-            <h3 className="text-base font-semibold mb-3">➕ Создать дуэль</h3>
+            <h3 className="text-base font-semibold mb-3">➕ Создать игру</h3>
             <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">Игроков</label>
+                  <Select value={maxPlayers} onValueChange={setMaxPlayers}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 игрока</SelectItem>
+                      <SelectItem value="3">3 игрока</SelectItem>
+                      <SelectItem value="4">4 игрока</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Карт на руках</label>
+                  <Select value={cardsPerPlayer} onValueChange={setCardsPerPlayer}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 карты</SelectItem>
+                      <SelectItem value="3">3 карты</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div>
-                <label className="text-xs text-muted-foreground">Начальная ставка (мин. 10₽)</label>
+                <label className="text-xs text-muted-foreground">Ставка (мин. 10₽)</label>
                 <Input 
                   type="number" 
                   value={betAmount} 
                   onChange={(e) => setBetAmount(e.target.value)} 
-                  placeholder="Сумма" 
+                  placeholder="100" 
                   min="10" 
                 />
               </div>
               <div className="flex gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => createDuel()} disabled={creatingDuel} className="flex-1">
-                      {creatingDuel ? <Loader2 className="w-4 h-4 animate-spin" /> : '🌐 Открытая'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Любой игрок сможет присоединиться</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => setShowInviteDialog(true)} variant="outline" className="flex-1">
-                      <Search className="w-4 h-4 mr-1" />
-                      Пригласить
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Найти и пригласить конкретного игрока</TooltipContent>
-                </Tooltip>
+                <Button onClick={() => createDuel()} disabled={creatingDuel} className="flex-1">
+                  {creatingDuel ? <Loader2 className="w-4 h-4 animate-spin" /> : '🌐 Создать лобби'}
+                </Button>
+                <Button onClick={() => setShowInviteDialog(true)} variant="outline" className="flex-1">
+                  <Search className="w-4 h-4 mr-1" />
+                  Пригласить
+                </Button>
               </div>
             </div>
           </Card>
@@ -767,24 +1109,24 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Доступные дуэли
+              Доступные игры
             </h3>
             <Button size="sm" variant="ghost" onClick={fetchDuels}>
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
           {availableDuels.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4 text-sm">Нет доступных дуэлей</p>
+            <p className="text-muted-foreground text-center py-4 text-sm">Нет доступных игр</p>
           ) : (
             availableDuels.map((duel) => (
               <Card key={duel.id} className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">{duel.creator?.username}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>ID: {duel.creator?.public_id}</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
                       <Badge variant="outline" className="text-xs">{duel.initial_bet}₽</Badge>
-                      {duel.status === 'invited' && <Badge variant="secondary" className="text-xs">Приглашение</Badge>}
+                      <Badge variant="secondary" className="text-xs">{duel.current_players}/{duel.max_players} 👥</Badge>
+                      <Badge variant="secondary" className="text-xs">{duel.cards_per_player || 2} 🃏</Badge>
                     </div>
                   </div>
                   {duel.creator_id === userId ? (
@@ -795,7 +1137,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                       onClick={() => joinDuel(duel.id)} 
                       disabled={joiningDuelId === duel.id || balance < duel.initial_bet || !!activeDuel}
                     >
-                      {joiningDuelId === duel.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Принять'}
+                      {joiningDuelId === duel.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Войти'}
                     </Button>
                   )}
                 </div>
@@ -811,35 +1153,34 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
               <Trophy className="w-4 h-4 text-yellow-500" />
               Последние игры
             </h3>
-            {recentGames.map((duel) => (
-              <Card 
-                key={duel.id} 
-                className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => setSelectedHistoryGame(duel)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">
-                      {duel.is_draw ? '🤝' : duel.winner_id === userId ? '🏆' : '❌'}
-                    </span>
-                    <div>
-                      <p className="text-sm">
-                        vs {duel.creator_id === userId ? duel.opponent?.username : duel.creator?.username}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Банк: {duel.pot?.toFixed(2)}₽</p>
+            {recentGames.map((duel) => {
+              const isWinnerInGame = duel.winner_id === userId || (duel.winners && duel.winners.includes(userId || ''));
+              return (
+                <Card 
+                  key={duel.id} 
+                  className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => setSelectedHistoryGame(duel)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">
+                        {duel.is_draw ? '🤝' : isWinnerInGame ? '🏆' : '❌'}
+                      </span>
+                      <div>
+                        <p className="text-sm">{duel.max_players} игрока</p>
+                        <p className="text-xs text-muted-foreground">Банк: {duel.pot?.toFixed(0)}₽</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-muted-foreground" />
+                      <Badge variant={duel.is_draw ? 'secondary' : isWinnerInGame ? 'default' : 'destructive'}>
+                        {duel.is_draw ? 'Ничья' : isWinnerInGame ? 'Победа' : 'Поражение'}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-muted-foreground" />
-                    <Badge 
-                      variant={duel.is_draw ? 'secondary' : duel.winner_id === userId ? 'default' : 'destructive'}
-                    >
-                      {duel.is_draw ? 'Ничья' : duel.winner_id === userId ? 'Победа' : 'Поражение'}
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
 
@@ -863,7 +1204,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 <Input 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  placeholder="Ник или ID игрока" 
+                  placeholder="Ник или ID" 
                   onKeyDown={(e) => e.key === 'Enter' && searchUsers()} 
                 />
                 <Button onClick={searchUsers} disabled={searchLoading}>
