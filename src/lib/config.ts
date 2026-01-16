@@ -18,4 +18,7 @@ export const APP_CONFIG = {
   
   // Get profile link
   getProfileLink: (publicId: number) => APP_CONFIG.getTelegramLink(`profile_${publicId}`),
+  
+  // Get poker duel link
+  getPokerDuelLink: () => APP_CONFIG.getTelegramLink('poker_duel'),
 };

@@ -10,6 +10,7 @@ import { sendTelegramNotification } from '@/lib/telegramNotifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
+import { APP_CONFIG } from '@/lib/config';
 
 interface PokerDuelGameProps {
   visitorId: string;
@@ -334,7 +335,12 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       if (invitedUserId && selectedUser) {
         const { data: invitedProfile } = await supabase.from('profiles').select('telegram_id').eq('id', invitedUserId).single();
         if (invitedProfile?.telegram_id) {
-          await sendTelegramNotification({ telegramId: invitedProfile.telegram_id, message: `🃏 Вас приглашают на покерную дуэль!\n\nСтавка: ${amount}₽`, notificationType: 'custom' });
+          const pokerLink = APP_CONFIG.getPokerDuelLink();
+          await sendTelegramNotification({ 
+            telegramId: invitedProfile.telegram_id, 
+            message: `🃏 Вас приглашают на покерную дуэль!\n\nСтавка: ${amount}₽\n\n👉 Принять приглашение: ${pokerLink}`, 
+            notificationType: 'custom' 
+          });
         }
       }
       onBalanceUpdate(); fetchDuels(); setShowInviteDialog(false); setSelectedUser(null); setSearchQuery(''); setSearchResults([]);
