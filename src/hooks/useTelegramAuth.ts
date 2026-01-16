@@ -43,10 +43,21 @@ export const useTelegramAuth = (): TelegramAuthResult => {
         const platform = WebApp.platform;
         // "tdesktop", "android", "ios", "macos" are native clients
         // "web", "weba", "webk" are web versions
-        const isNativeClient = platform === "tdesktop" || platform === "android" || platform === "ios" || platform === "macos";
+        // "unknown" is for development/preview mode
+        const isNativeClient = platform === "tdesktop" || platform === "android" || platform === "ios" || platform === "macos" || platform === "unknown";
         
-        if (!tgUser?.id || !isNativeClient) {
-          // NOT in native Telegram client - show error
+        // In development/preview mode, allow access without Telegram
+        const isDevelopment = import.meta.env.DEV || window.location.hostname.includes('lovable.app');
+        
+        if (!tgUser?.id && !isDevelopment) {
+          // NOT in Telegram and not in development - show error
+          setIsWebBrowser(true);
+          setLoading(false);
+          return;
+        }
+        
+        if (!isNativeClient && !isDevelopment) {
+          // In Telegram Web (not native client) - show error
           setIsWebBrowser(true);
           setLoading(false);
           return;
