@@ -46,6 +46,7 @@ import { HorseRacingGame } from "@/components/games/HorseRacingGame";
 import { ChickenRoadGame } from "@/components/games/ChickenRoadGame";
 import { PlinkoGame } from "@/components/games/PlinkoGame";
 import { UpgraderGame } from "@/components/games/UpgraderGame";
+import { PokerDuelGame } from "@/components/games/PokerDuelGame";
 import { Button } from "@/components/ui/button";
 import plinkoImg from "@/assets/plinko.webp";
 import { useProfile } from "@/hooks/useProfile";
@@ -61,7 +62,7 @@ import { GamesSection } from "@/components/GamesSection";
 import { FloatingOrbs } from "@/components/FloatingOrbs";
 import { ArrowLeft } from "lucide-react";
 
-type GameType = "dice" | "mines" | "towers" | "hilo" | "roulette" | "blackjack" | "crash" | "slots" | "dogs-house-slots" | "cases" | "balloon" | "penalty" | "crypto" | "horse-racing" | "chicken-road" | "plinko" | "upgrader" | null;
+type GameType = "dice" | "mines" | "towers" | "hilo" | "roulette" | "blackjack" | "crash" | "slots" | "dogs-house-slots" | "cases" | "balloon" | "penalty" | "crypto" | "horse-racing" | "chicken-road" | "plinko" | "upgrader" | "poker-duel" | null;
 
 const Index = () => {
   const { user, startParam } = useTelegramAuth();
@@ -159,6 +160,7 @@ const Index = () => {
     { type: "chicken-road" as GameType, image: chickenRoadImg, title: "Chicken Road", description: "Проведи курицу через ловушки!", gameName: "chicken-road" },
     { type: "plinko" as GameType, image: plinkoImg, title: "Plinko", description: "Брось шарик и лови множители!", gameName: "plinko" },
     { type: "upgrader" as GameType, image: casesImg, title: "Upgrader", description: "Апгрейдь скины!", gameName: "upgrader" },
+    { type: "poker-duel" as GameType, image: blackjackImg, title: "Poker Duel", description: "PvP покер 1 на 1!", gameName: "poker-duel" },
   ];
 
   const specialCards = [
@@ -168,13 +170,6 @@ const Index = () => {
       description: "Делай ставки на спортивные события", 
       onClick: () => navigate("/bets"),
       gameName: "bets",
-    },
-    { 
-      image: blackjackImg, 
-      title: "Poker Duel", 
-      description: "PvP покер на 2 игрока", 
-      onClick: () => navigate("/poker-duel"),
-      gameName: "poker-duel",
     },
   ];
 
@@ -397,6 +392,14 @@ const Index = () => {
                   {selectedGame === "upgrader" && (
                     <UpgraderGame
                       userId={user!.id}
+                      onBalanceUpdate={refreshProfile}
+                    />
+                  )}
+                  
+                  {selectedGame === "poker-duel" && profile && (
+                    <PokerDuelGame
+                      visitorId={String(profile.telegram_id)}
+                      balance={profile.balance}
                       onBalanceUpdate={refreshProfile}
                     />
                   )}
