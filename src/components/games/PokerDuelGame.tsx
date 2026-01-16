@@ -1098,9 +1098,17 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 <label className="text-xs text-muted-foreground">Максимальный баланс игры: {maxBalance}₽</label>
                 <Slider 
                   value={[maxBalance]} 
-                  onValueChange={(v) => setMaxBalance(v[0])}
+                  onValueChange={(v) => {
+                    const newMax = v[0];
+                    setMaxBalance(newMax);
+                    // Adjust betAmount if it exceeds new maxBalance
+                    const currentBet = parseFloat(betAmount) || 0;
+                    if (currentBet > newMax) {
+                      setBetAmount(String(newMax));
+                    }
+                  }}
                   min={100}
-                  max={Math.min(10000, balance)}
+                  max={Math.max(100, Math.min(10000, Math.floor(balance)))}
                   step={50}
                   className="mt-2"
                 />
@@ -1112,7 +1120,16 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 <Input 
                   type="number" 
                   value={betAmount} 
-                  onChange={(e) => setBetAmount(e.target.value)} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const numVal = parseFloat(val) || 0;
+                    // Clamp to maxBalance
+                    if (numVal > maxBalance) {
+                      setBetAmount(String(maxBalance));
+                    } else {
+                      setBetAmount(val);
+                    }
+                  }} 
                   placeholder="100" 
                   min="10"
                   max={maxBalance}
