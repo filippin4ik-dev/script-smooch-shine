@@ -77,6 +77,7 @@ import Support from "./pages/Support";
 import Rewards from "./pages/Rewards";
 import Referral from "./pages/Referral";
 import BettingTournaments from "./pages/BettingTournaments";
+import PokerDuel from "./pages/PokerDuel";
 import { BanImage } from "@/components/BanImage";
 import { useTelegramAuth } from "@/hooks/useTelegramAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,6 +219,7 @@ const AppContent = () => {
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/referral" element={<Referral />} />
           <Route path="/betting-tournaments" element={<BettingTournaments />} />
+          <Route path="/poker-duel" element={<PokerDuel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
