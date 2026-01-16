@@ -87,14 +87,21 @@ const TURN_TIME_SECONDS = 30;
 const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: CardData; hidden?: boolean; highlighted?: boolean }) => {
   if (hidden) {
     return (
-      <div className="w-12 h-16 sm:w-14 sm:h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg border-2 border-blue-400 flex items-center justify-center shadow-lg">
-        <span className="text-xl sm:text-2xl">🂠</span>
+      <div className="w-12 h-16 sm:w-14 sm:h-20 rounded-lg border-2 border-blue-400 flex items-center justify-center shadow-lg relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #172554 100%)' }}>
+        <div className="absolute inset-0 opacity-30" style={{ 
+          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px)' 
+        }} />
+        <span className="text-xl sm:text-2xl relative z-10">🂠</span>
       </div>
     );
   }
 
   return (
-    <div className={`w-12 h-16 sm:w-14 sm:h-20 bg-white rounded-lg border-2 flex flex-col items-center justify-center shadow-lg transition-all ${highlighted ? 'border-yellow-400 ring-2 ring-yellow-400 scale-110 z-10' : 'border-gray-300'}`}>
+    <div 
+      className={`w-12 h-16 sm:w-14 sm:h-20 rounded-lg border-2 flex flex-col items-center justify-center shadow-lg transition-all relative ${highlighted ? 'border-yellow-400 ring-2 ring-yellow-400 scale-110 z-10' : 'border-gray-300'}`}
+      style={{ backgroundColor: '#ffffff' }}
+    >
       <span className={`text-base sm:text-lg font-bold ${SUIT_COLORS[card.suit]}`}>{card.rank}</span>
       <span className={`text-lg sm:text-xl ${SUIT_COLORS[card.suit]}`}>{SUITS_EMOJI[card.suit]}</span>
     </div>
