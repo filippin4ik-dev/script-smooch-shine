@@ -1690,6 +1690,103 @@ export type Database = {
         }
         Relationships: []
       }
+      poker_duels: {
+        Row: {
+          bet_amount: number
+          community_cards: Json | null
+          created_at: string | null
+          creator_cards: Json | null
+          creator_hand_rank: string | null
+          creator_id: string
+          finished_at: string | null
+          id: string
+          is_draw: boolean | null
+          opponent_cards: Json | null
+          opponent_hand_rank: string | null
+          opponent_id: string | null
+          started_at: string | null
+          status: string | null
+          winner_id: string | null
+        }
+        Insert: {
+          bet_amount: number
+          community_cards?: Json | null
+          created_at?: string | null
+          creator_cards?: Json | null
+          creator_hand_rank?: string | null
+          creator_id: string
+          finished_at?: string | null
+          id?: string
+          is_draw?: boolean | null
+          opponent_cards?: Json | null
+          opponent_hand_rank?: string | null
+          opponent_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          winner_id?: string | null
+        }
+        Update: {
+          bet_amount?: number
+          community_cards?: Json | null
+          created_at?: string | null
+          creator_cards?: Json | null
+          creator_hand_rank?: string | null
+          creator_id?: string
+          finished_at?: string | null
+          id?: string
+          is_draw?: boolean | null
+          opponent_cards?: Json | null
+          opponent_hand_rank?: string | null
+          opponent_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_duels_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_opponent_id_fkey"
+            columns: ["opponent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_opponent_id_fkey"
+            columns: ["opponent_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duels_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       preset_wheel_results: {
         Row: {
           created_at: string | null
@@ -3537,6 +3634,10 @@ export type Database = {
       calculate_blackjack_value: { Args: { _cards: number[] }; Returns: number }
       calculate_level: { Args: { _xp: number }; Returns: number }
       can_send_chat_message: { Args: { _user_id: string }; Returns: Json }
+      cancel_poker_duel: {
+        Args: { p_duel_id: string; p_user_id: string }
+        Returns: boolean
+      }
       cashout_balloon: {
         Args: { _session_id: string; _user_id: string }
         Returns: Json
@@ -3630,6 +3731,10 @@ export type Database = {
         Returns: Json
       }
       create_crash_round: { Args: never; Returns: Json }
+      create_poker_duel: {
+        Args: { p_bet_amount: number; p_creator_id: string }
+        Returns: string
+      }
       create_profile_with_username: {
         Args: {
           _first_name?: string
@@ -3678,6 +3783,13 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      evaluate_poker_hand: {
+        Args: { cards: string[] }
+        Returns: {
+          name: string
+          rank: number
+        }[]
       }
       find_game_by_number: {
         Args: { _game_number: number }
@@ -4124,6 +4236,10 @@ export type Database = {
       is_profile_admin: { Args: { _profile_id: string }; Returns: boolean }
       join_giveaway: {
         Args: { _giveaway_id: string; _user_id: string }
+        Returns: Json
+      }
+      join_poker_duel: {
+        Args: { p_duel_id: string; p_opponent_id: string }
         Returns: Json
       }
       lose_mines: {

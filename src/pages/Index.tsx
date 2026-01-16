@@ -169,6 +169,13 @@ const Index = () => {
       onClick: () => navigate("/bets"),
       gameName: "bets",
     },
+    { 
+      image: blackjackImg, 
+      title: "Poker Duel", 
+      description: "PvP покер на 2 игрока", 
+      onClick: () => navigate("/poker-duel"),
+      gameName: "poker-duel",
+    },
   ];
 
   if (!user) {
