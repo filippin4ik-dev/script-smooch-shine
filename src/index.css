@@ -680,6 +680,58 @@ All colors MUST be HSL.
   }
 }
 
+/* Poker Chip Animation */
+@keyframes chip-fly-to-pot {
+  0% {
+    transform: scale(1) translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) translate(var(--fly-x, 0px), var(--fly-y, -80px)) rotate(180deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8) translate(var(--fly-x-end, 0px), var(--fly-y-end, -120px)) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes chip-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.05);
+  }
+}
+
+@keyframes chip-stack {
+  0% {
+    transform: scale(0) translateY(-50px) rotate(-180deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1) translateY(0) rotate(10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-chip-fly {
+  animation: chip-fly-to-pot 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-chip-bounce {
+  animation: chip-bounce 0.5s ease-in-out;
+}
+
+.animate-chip-stack {
+  animation: chip-stack 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 /* Reduced motion for performance mode */
 .reduce-motion,
 .reduce-motion * {
