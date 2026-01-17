@@ -13,61 +13,81 @@ export const PokerResultAnimation = ({ result, amount, show, onComplete }: Poker
   const [animationPhase, setAnimationPhase] = useState(0);
 
   useEffect(() => {
-    if (show) {
-      setVisible(true);
-      setAnimationPhase(1);
-      
-      // Phase 2: Scale up
-      setTimeout(() => setAnimationPhase(2), 100);
-      
-      // Phase 3: Particles
-      setTimeout(() => setAnimationPhase(3), 300);
-      
-      // Trigger confetti for wins
-      if (result === 'win') {
-        const duration = 3000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        const interval = setInterval(() => {
-          const timeLeft = animationEnd - Date.now();
-          if (timeLeft <= 0) {
-            return clearInterval(interval);
-          }
-
-          const particleCount = 50 * (timeLeft / duration);
-          
-          confetti({
-            ...defaults,
-            particleCount,
-            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-            colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#00BFFF'],
-          });
-          confetti({
-            ...defaults,
-            particleCount,
-            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-            colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#00BFFF'],
-          });
-        }, 250);
-
-        setTimeout(() => clearInterval(interval), duration);
-      }
-      
-      // Auto hide
-      const timer = setTimeout(() => {
-        setAnimationPhase(0);
-        setTimeout(() => {
-          setVisible(false);
-          onComplete?.();
-        }, 300);
-      }, 4000);
-      
-      return () => clearTimeout(timer);
+    if (!show) {
+      // Reset when show becomes false
+      setVisible(false);
+      setAnimationPhase(0);
+      return;
     }
+    
+    setVisible(true);
+    setAnimationPhase(1);
+    
+    // Phase 2: Scale up
+    const phase2Timer = setTimeout(() => setAnimationPhase(2), 100);
+    
+    // Phase 3: Particles
+    const phase3Timer = setTimeout(() => setAnimationPhase(3), 300);
+    
+    let confettiInterval: ReturnType<typeof setInterval> | null = null;
+    
+    // Trigger confetti for wins
+    if (result === 'win') {
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      confettiInterval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) {
+          if (confettiInterval) clearInterval(confettiInterval);
+          return;
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#00BFFF'],
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#00BFFF'],
+        });
+      }, 250);
+    }
+    
+    // Auto hide after 4 seconds
+    const hideTimer = setTimeout(() => {
+      setAnimationPhase(0);
+      setTimeout(() => {
+        setVisible(false);
+        onComplete?.();
+      }, 300);
+    }, 4000);
+    
+    return () => {
+      clearTimeout(phase2Timer);
+      clearTimeout(phase3Timer);
+      clearTimeout(hideTimer);
+      if (confettiInterval) clearInterval(confettiInterval);
+    };
   }, [show, result, onComplete]);
+  
+  // Handle click to close
+  const handleClose = () => {
+    setAnimationPhase(0);
+    setTimeout(() => {
+      setVisible(false);
+      onComplete?.();
+    }, 200);
+  };
 
   if (!visible) return null;
 
@@ -112,7 +132,10 @@ export const PokerResultAnimation = ({ result, amount, show, onComplete }: Poker
   const config = getResultConfig();
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center cursor-pointer"
+      onClick={handleClose}
+    >
       {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
