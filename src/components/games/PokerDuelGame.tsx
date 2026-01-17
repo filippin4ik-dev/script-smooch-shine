@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 
 interface PokerDuelGameProps {
-  visitorId: string;
+  visitorId: string; // Can be telegram_id (string of number) OR profile UUID
   balance: number;
   onBalanceUpdate: () => void;
 }
@@ -567,7 +567,25 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchUserId = useCallback(async () => {
-    const { data } = await supabase.from('profiles').select('id').eq('telegram_id', parseInt(visitorId)).maybeSingle();
+    // Check if visitorId is a UUID (profile id) or telegram_id (number string)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(visitorId);
+    
+    if (isUUID) {
+      // visitorId is already a profile UUID
+      setUserId(visitorId);
+      setLoading(false);
+      return;
+    }
+    
+    // visitorId is telegram_id, need to fetch profile UUID
+    const telegramId = parseInt(visitorId);
+    if (isNaN(telegramId)) {
+      console.error('Invalid visitorId:', visitorId);
+      setLoading(false);
+      return;
+    }
+    
+    const { data } = await supabase.from('profiles').select('id').eq('telegram_id', telegramId).maybeSingle();
     if (data) setUserId(data.id);
     setLoading(false);
   }, [visitorId]);

@@ -398,7 +398,7 @@ const Index = () => {
                   
                   {selectedGame === "poker-duel" && profile && (
                     <PokerDuelGame
-                      visitorId={String(profile.telegram_id)}
+                      visitorId={profile.id}
                       balance={profile.balance}
                       onBalanceUpdate={refreshProfile}
                     />
