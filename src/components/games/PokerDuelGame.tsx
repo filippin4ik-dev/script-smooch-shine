@@ -679,11 +679,20 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setLoading(false);
   }, [visitorId]);
 
+  // Helper to sanitize UUID strings (backend sometimes returns quoted values)
+  const cleanUuid = useCallback((value: unknown) => {
+    return String(value ?? '')
+      .trim()
+      .replace(/^"+|"+$/g, '')
+      .replace(/"/g, '');
+  }, []);
+
   // Helper to get clean user ID for RPC calls
   const getCleanUserId = useCallback(() => {
     if (!userId) return null;
-    return String(userId).trim().replace(/^"+|"+$/g, '').replace(/"/g, '');
-  }, [userId]);
+    const cleaned = cleanUuid(userId);
+    return cleaned || null;
+  }, [userId, cleanUuid]);
 
   const fetchMyCards = useCallback(async (duelId: string) => {
     const cleanId = getCleanUserId();
@@ -691,7 +700,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     const { data: duel } = await supabase
       .from('poker_duels')
       .select('creator_id, opponent_id, player3_id, player4_id, creator_cards, opponent_cards, player3_cards, player4_cards, community_cards, game_phase')
-      .eq('id', duelId)
+      .eq('id', cleanUuid(duelId))
       .single();
     
     if (duel) {
@@ -721,9 +730,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   }, [getCleanUserId]);
 
   const fetchDuels = useCallback(async () => {
-    if (!userId) return;
-
-    const safeUserId = String(userId).trim().replace(/^"+|"+$/g, '');
+    const safeUserId = getCleanUserId();
+    if (!safeUserId) return;
     
     const { data: available } = await supabase
       .from('poker_duels')
@@ -891,7 +899,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const cancelDuel = async (duelId: string) => {
     const cleanId = getCleanUserId();
     if (!cleanId) return;
-    const { error } = await supabase.rpc('cancel_poker_duel_v2', { p_duel_id: duelId, p_user_id: cleanId });
+    const { error } = await supabase.rpc('cancel_poker_duel_v2', { p_duel_id: cleanUuid(duelId), p_user_id: cleanId });
     if (error) toast.error(error.message); 
     else { toast.success('Дуэль отменена'); onBalanceUpdate(); fetchDuels(); }
   };
@@ -899,7 +907,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const declineDuel = async (duelId: string) => {
     const cleanId = getCleanUserId();
     if (!cleanId) return;
-    const { error } = await supabase.rpc('decline_poker_duel', { p_duel_id: duelId, p_user_id: cleanId });
+    const { error } = await supabase.rpc('decline_poker_duel', { p_duel_id: cleanUuid(duelId), p_user_id: cleanId });
     if (error) toast.error(error.message); 
     else { toast.success('Приглашение отклонено'); fetchDuels(); }
   };
@@ -910,7 +918,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setJoiningDuelId(duelId);
     
     const { data, error } = await supabase.rpc('join_multiplayer_poker_duel', { 
-      p_duel_id: duelId, 
+      p_duel_id: cleanUuid(duelId), 
       p_user_id: cleanId 
     });
     
@@ -934,7 +942,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setActionLoading(true);
     
     const { data, error } = await supabase.rpc('multiplayer_poker_action', { 
-      p_duel_id: activeDuel.id, 
+      p_duel_id: cleanUuid(activeDuel.id), 
       p_user_id: cleanId, 
       p_action: action, 
       p_raise_amount: raiseAmt || 0 
