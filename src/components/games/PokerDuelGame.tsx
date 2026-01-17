@@ -817,13 +817,34 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (normalizedActive) { 
       // Check if game just ended - trigger animation
       if (normalizedActive.game_phase === 'showdown' && lastDuelStatusRef.current !== 'showdown') {
-        const iWon =
-          normalizedActive.winner_id === safeUserId ||
-          (normalizedActive.winners && normalizedActive.winners.includes(safeUserId));
+        // Clean user ID for comparison
+        const cleanedUserId = cleanUuid(safeUserId);
+        
+        // Debug log to understand the data
+        console.log('[POKER DEBUG] Showdown reached:', {
+          winner_id: normalizedActive.winner_id,
+          winners: normalizedActive.winners,
+          is_draw: normalizedActive.is_draw,
+          cleanedUserId,
+        });
+        
+        // Check if current user won
+        const winnerId = normalizedActive.winner_id ? cleanUuid(normalizedActive.winner_id) : null;
+        const winnersArray = normalizedActive.winners || [];
+        const cleanWinners = winnersArray.map((w: unknown) => cleanUuid(w));
+        
+        const isUserInWinners = cleanedUserId && cleanWinners.includes(cleanedUserId);
+        const isUserWinner = cleanedUserId && winnerId === cleanedUserId;
+        const iWon = isUserWinner || isUserInWinners;
+        
+        // Check for draw: multiple winners or is_draw flag
+        const isDraw = normalizedActive.is_draw === true || cleanWinners.length > 1;
+        
+        console.log('[POKER DEBUG] Result calculation:', { iWon, isDraw, cleanWinners, isUserInWinners, isUserWinner });
 
-        if (normalizedActive.is_draw || (normalizedActive.winners && normalizedActive.winners.length > 1)) {
+        if (isDraw && isUserInWinners) {
           setResultAnimationType('draw');
-          const winnersCount = normalizedActive.winners ? normalizedActive.winners.length : 2;
+          const winnersCount = cleanWinners.length || 2;
           setResultAnimationAmount((normalizedActive.pot * 0.95) / winnersCount);
         } else if (iWon) {
           setResultAnimationType('win');
@@ -1104,7 +1125,11 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const callAmount = Math.max(0, maxBet - (myCurrentBet || 0));
   const canCheck = callAmount === 0;
   
-  const iWon = currentDuel?.winner_id === userId || (currentDuel?.winners && currentDuel.winners.includes(userId || ''));
+  const cleanUserId = getCleanUserId();
+  const iWon = cleanUserId && currentDuel ? (
+    currentDuel.winner_id === cleanUserId || 
+    (currentDuel.winners && currentDuel.winners.includes(cleanUserId))
+  ) : false;
 
   // Check if viewing finished game
   const isFinishedGame = finishedDuel && (!activeDuel || activeDuel.game_phase === 'showdown');
