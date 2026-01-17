@@ -103,6 +103,146 @@ const HAND_RANK_RU: Record<string, string> = {
 
 const TURN_TIME_SECONDS = 30;
 
+// Poker Chip Component with animation
+const PokerChip = ({ 
+  value, 
+  color = 'gold', 
+  animate = false, 
+  delay = 0,
+  flyDirection = 'up'
+}: { 
+  value?: number; 
+  color?: 'gold' | 'red' | 'blue' | 'green' | 'purple';
+  animate?: boolean;
+  delay?: number;
+  flyDirection?: 'up' | 'left' | 'right';
+}) => {
+  const colorClasses = {
+    gold: 'from-yellow-400 via-yellow-500 to-yellow-600 border-yellow-300 shadow-yellow-500/50',
+    red: 'from-red-400 via-red-500 to-red-600 border-red-300 shadow-red-500/50',
+    blue: 'from-blue-400 via-blue-500 to-blue-600 border-blue-300 shadow-blue-500/50',
+    green: 'from-green-400 via-green-500 to-green-600 border-green-300 shadow-green-500/50',
+    purple: 'from-purple-400 via-purple-500 to-purple-600 border-purple-300 shadow-purple-500/50',
+  };
+
+  const flyVars: Record<string, string> = {
+    up: '--fly-x: 0px; --fly-y: -80px; --fly-x-end: 0px; --fly-y-end: -120px;',
+    left: '--fly-x: -60px; --fly-y: -60px; --fly-x-end: -80px; --fly-y-end: -100px;',
+    right: '--fly-x: 60px; --fly-y: -60px; --fly-x-end: 80px; --fly-y-end: -100px;',
+  };
+
+  return (
+    <div 
+      className={`
+        w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 
+        bg-gradient-to-br ${colorClasses[color]}
+        flex items-center justify-center
+        shadow-lg relative overflow-hidden
+        ${animate ? 'animate-chip-fly' : 'animate-chip-bounce'}
+      `}
+      style={{ 
+        animationDelay: `${delay}ms`,
+        ...(animate ? { cssText: flyVars[flyDirection] } : {})
+      } as React.CSSProperties}
+    >
+      {/* Inner ring */}
+      <div className="absolute inset-1 rounded-full border border-white/30" />
+      {/* Center circle */}
+      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+        {value && <span className="text-[8px] sm:text-[10px] font-bold text-white drop-shadow-md">{value >= 1000 ? `${(value/1000).toFixed(0)}K` : value}</span>}
+        {!value && <span className="text-xs">💰</span>}
+      </div>
+      {/* Shine effect */}
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-full" />
+    </div>
+  );
+};
+
+// Flying chips animation container
+const FlyingChips = ({ 
+  show, 
+  amount, 
+  fromPosition = 'bottom',
+  onComplete 
+}: { 
+  show: boolean; 
+  amount: number;
+  fromPosition?: 'bottom' | 'left' | 'right';
+  onComplete?: () => void;
+}) => {
+  const [chips, setChips] = useState<{ id: number; color: 'gold' | 'red' | 'blue' | 'green' | 'purple'; delay: number }[]>([]);
+
+  useEffect(() => {
+    if (show && amount > 0) {
+      const chipCount = Math.min(5, Math.ceil(amount / 100));
+      const colors: ('gold' | 'red' | 'blue' | 'green' | 'purple')[] = ['gold', 'red', 'blue', 'green', 'purple'];
+      
+      const newChips = Array.from({ length: chipCount }, (_, i) => ({
+        id: Date.now() + i,
+        color: colors[i % colors.length],
+        delay: i * 100
+      }));
+      
+      setChips(newChips);
+      
+      // Clear chips after animation
+      const timer = setTimeout(() => {
+        setChips([]);
+        onComplete?.();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [show, amount, onComplete]);
+
+  if (!chips.length) return null;
+
+  const positionClasses = {
+    bottom: 'bottom-0 left-1/2 -translate-x-1/2',
+    left: 'bottom-1/2 left-0 translate-y-1/2',
+    right: 'bottom-1/2 right-0 translate-y-1/2'
+  };
+
+  const flyDirection = fromPosition === 'left' ? 'right' : fromPosition === 'right' ? 'left' : 'up';
+
+  return (
+    <div className={`absolute ${positionClasses[fromPosition]} z-50 flex gap-1`}>
+      {chips.map((chip) => (
+        <PokerChip 
+          key={chip.id} 
+          color={chip.color} 
+          animate 
+          delay={chip.delay}
+          flyDirection={flyDirection}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Pot display with stacked chips
+const PotDisplay = ({ pot, showAnimation = false }: { pot: number; showAnimation?: boolean }) => {
+  const chipStacks = Math.min(5, Math.ceil(pot / 200));
+  const colors: ('gold' | 'red' | 'blue' | 'green' | 'purple')[] = ['gold', 'red', 'blue', 'green', 'purple'];
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-end justify-center gap-0.5">
+        {Array.from({ length: chipStacks }).map((_, i) => (
+          <div 
+            key={i} 
+            className={`${showAnimation ? 'animate-chip-stack' : ''}`}
+            style={{ animationDelay: `${i * 100}ms` }}
+          >
+            <PokerChip color={colors[i % colors.length]} />
+          </div>
+        ))}
+      </div>
+      <span className="text-xs text-yellow-400 font-bold">{pot?.toFixed(0)}₽</span>
+    </div>
+  );
+};
+
 const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: CardData; hidden?: boolean; highlighted?: boolean }) => {
   if (hidden) {
     return (
@@ -420,6 +560,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [showResultAnimation, setShowResultAnimation] = useState(false);
   const [resultAnimationType, setResultAnimationType] = useState<'win' | 'lose' | 'draw'>('win');
   const [resultAnimationAmount, setResultAnimationAmount] = useState(0);
+  const [showChipAnimation, setShowChipAnimation] = useState(false);
+  const [chipAnimationAmount, setChipAnimationAmount] = useState(0);
+  const [showPotAnimation, setShowPotAnimation] = useState(false);
   const lastDuelStatusRef = useRef<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -660,6 +803,31 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (!userId || !activeDuel) return;
     setActionLoading(true);
     
+    // Trigger chip animation for betting actions
+    if (action !== 'fold' && action !== 'check') {
+      const betAmount = action === 'call' 
+        ? Math.max(0, Math.max(
+            activeDuel.creator_current_bet || 0,
+            activeDuel.opponent_current_bet || 0,
+            activeDuel.player3_current_bet || 0,
+            activeDuel.player4_current_bet || 0
+          ) - (
+            userId === activeDuel.creator_id ? activeDuel.creator_current_bet :
+            userId === activeDuel.opponent_id ? activeDuel.opponent_current_bet :
+            userId === activeDuel.player3_id ? activeDuel.player3_current_bet :
+            activeDuel.player4_current_bet || 0
+          ))
+        : action === 'all-in' 
+          ? Math.min(balance, activeDuel.max_balance || 1000)
+          : raiseAmt || 0;
+      
+      if (betAmount > 0) {
+        setChipAnimationAmount(betAmount);
+        setShowChipAnimation(true);
+        setShowPotAnimation(true);
+      }
+    }
+    
     const { data, error } = await supabase.rpc('multiplayer_poker_action', { 
       p_duel_id: activeDuel.id, 
       p_user_id: userId, 
@@ -669,6 +837,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     
     if (error) {
       toast.error(error.message);
+      setShowChipAnimation(false);
     } else if (data) {
       if (action === 'fold') toast.info('Вы сбросили карты');
       else if (data.game_ended) {
@@ -808,18 +977,31 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         {currentDuel && (currentDuel.status === 'playing' || isFinishedGame) && (
           <Card className="p-4 bg-gradient-to-br from-green-900/50 to-green-800/30 border-green-600">
             <div className="space-y-3">
-              {/* Game Header */}
+              {/* Game Header with Pot Display */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-base font-bold text-green-400">
                   {isFinishedGame ? '🏁 Игра завершена' : '🎴 Активная игра'}
                 </h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-                    Банк: {currentDuel.pot?.toFixed(0)}₽
-                  </Badge>
-                  <Badge variant="secondary">
-                    Макс: {currentDuel.max_balance || currentDuel.initial_bet}₽
-                  </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Макс: {currentDuel.max_balance || currentDuel.initial_bet}₽
+                </Badge>
+              </div>
+
+              {/* Pot with Chips Animation */}
+              <div className="relative flex justify-center py-2">
+                <div className="relative">
+                  <PotDisplay pot={currentDuel.pot || 0} showAnimation={showPotAnimation} />
+                  
+                  {/* Flying Chips Animation */}
+                  <FlyingChips 
+                    show={showChipAnimation} 
+                    amount={chipAnimationAmount}
+                    fromPosition="bottom"
+                    onComplete={() => {
+                      setShowChipAnimation(false);
+                      setShowPotAnimation(false);
+                    }}
+                  />
                 </div>
               </div>
 
