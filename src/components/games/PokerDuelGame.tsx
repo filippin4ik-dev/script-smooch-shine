@@ -243,15 +243,51 @@ const PotDisplay = ({ pot, showAnimation = false }: { pot: number; showAnimation
   );
 };
 
-const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: CardData; hidden?: boolean; highlighted?: boolean }) => {
+const PlayingCard = ({ 
+  card, 
+  hidden = false, 
+  highlighted = false,
+  dealAnimation = false,
+  dealDelay = 0,
+  dealDirection = 'top'
+}: { 
+  card: CardData; 
+  hidden?: boolean; 
+  highlighted?: boolean;
+  dealAnimation?: boolean;
+  dealDelay?: number;
+  dealDirection?: 'top' | 'left' | 'right' | 'bottom';
+}) => {
+  const [isDealt, setIsDealt] = useState(!dealAnimation);
+  
+  useEffect(() => {
+    if (dealAnimation) {
+      const timer = setTimeout(() => setIsDealt(true), dealDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [dealAnimation, dealDelay]);
+
+  const getDealStyles = () => {
+    if (!dealAnimation) return {};
+    const directions = {
+      top: { '--deal-from-x': '0px', '--deal-from-y': '-150px', '--deal-rotate': '-180deg' },
+      left: { '--deal-from-x': '-150px', '--deal-from-y': '-50px', '--deal-rotate': '-90deg' },
+      right: { '--deal-from-x': '150px', '--deal-from-y': '-50px', '--deal-rotate': '90deg' },
+      bottom: { '--deal-from-x': '0px', '--deal-from-y': '150px', '--deal-rotate': '180deg' },
+    };
+    return directions[dealDirection];
+  };
+
   if (hidden) {
     return (
       <div 
-        className="w-10 h-14 sm:w-12 sm:h-16 rounded-lg border-2 border-blue-500 flex items-center justify-center shadow-xl relative overflow-hidden"
+        className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg border-2 border-blue-500 flex items-center justify-center shadow-xl relative overflow-hidden ${dealAnimation && isDealt ? 'animate-card-deal' : ''} ${!isDealt ? 'opacity-0' : ''}`}
         style={{ 
           background: '#1e3a8a',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-        }}
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+          animationDelay: `${dealDelay}ms`,
+          ...getDealStyles()
+        } as React.CSSProperties}
       >
         <div 
           className="absolute inset-0" 
@@ -274,13 +310,18 @@ const PlayingCard = ({ card, hidden = false, highlighted = false }: { card: Card
 
   return (
     <div 
-      className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg border-2 flex flex-col items-center justify-center shadow-xl transition-all relative overflow-hidden ${highlighted ? 'border-yellow-400 ring-2 ring-yellow-400 scale-110 z-10' : 'border-slate-300'}`}
+      className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg border-2 flex flex-col items-center justify-center shadow-xl transition-all relative overflow-hidden 
+        ${highlighted ? 'border-yellow-400 ring-2 ring-yellow-400 scale-110 z-10 animate-card-glow' : 'border-slate-300'}
+        ${dealAnimation && isDealt ? 'animate-card-deal' : ''}
+        ${!isDealt ? 'opacity-0' : ''}`}
       style={{ 
         background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
         boxShadow: highlighted 
           ? '0 0 20px rgba(250, 204, 21, 0.5), 0 4px 6px -1px rgba(0, 0, 0, 0.2)' 
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,1)'
-      }}
+          : '0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,1)',
+        animationDelay: `${dealDelay}ms`,
+        ...getDealStyles()
+      } as React.CSSProperties}
     >
       <span className="text-sm sm:text-base font-bold relative z-10" style={{ color: suitColor }}>{cardValue}</span>
       <span className="text-base sm:text-lg relative z-10" style={{ color: suitColor }}>{SUITS_EMOJI[card.suit]}</span>
@@ -453,7 +494,9 @@ const PlayerCardSlot = ({
   isMe,
   showCards,
   gamePhase,
-  cardsPerPlayer
+  cardsPerPlayer,
+  playerIndex = 0,
+  showDealAnimation = false
 }: { 
   player: { username: string; public_id: number } | undefined;
   cards: CardData[] | null;
@@ -466,6 +509,8 @@ const PlayerCardSlot = ({
   showCards: boolean;
   gamePhase: string;
   cardsPerPlayer: number;
+  playerIndex?: number;
+  showDealAnimation?: boolean;
 }) => {
   if (!player) return null;
   
@@ -476,6 +521,9 @@ const PlayerCardSlot = ({
     : isMe 
     ? 'bg-green-900/30' 
     : 'bg-red-900/20';
+
+  const dealDirections: ('top' | 'left' | 'right' | 'bottom')[] = ['top', 'right', 'bottom', 'left'];
+  const dealDirection = dealDirections[playerIndex % 4];
 
   return (
     <div className={`text-center rounded-lg p-2 ${bgColor} transition-all`}>
@@ -489,10 +537,26 @@ const PlayerCardSlot = ({
           <span className="text-xs text-muted-foreground">—</span>
         ) : cards && (showCards || isMe) ? (
           cards.map((card, i) => (
-            <PlayingCard key={i} card={card} highlighted={isWinner && gamePhase === 'showdown'} />
+            <PlayingCard 
+              key={i} 
+              card={card} 
+              highlighted={isWinner && gamePhase === 'showdown'}
+              dealAnimation={showDealAnimation}
+              dealDelay={playerIndex * 300 + i * 150}
+              dealDirection={dealDirection}
+            />
           ))
         ) : (
-          Array(cardsPerPlayer).fill(0).map((_, i) => <PlayingCard key={i} card={{ suit: 'spades', rank: '?' }} hidden />)
+          Array(cardsPerPlayer).fill(0).map((_, i) => (
+            <PlayingCard 
+              key={i} 
+              card={{ suit: 'spades', rank: '?' }} 
+              hidden 
+              dealAnimation={showDealAnimation}
+              dealDelay={playerIndex * 300 + i * 150}
+              dealDirection={dealDirection}
+            />
+          ))
         )}
       </div>
       {gamePhase === 'showdown' && handRank && !isFolded && (
@@ -505,8 +569,8 @@ const PlayerCardSlot = ({
   );
 };
 
-// Community cards display with phase-aware revealing
-const CommunityCardsDisplay = ({ cards, gamePhase }: { cards: CardData[]; gamePhase: string }) => {
+// Community cards display with phase-aware revealing and animation
+const CommunityCardsDisplay = ({ cards, gamePhase, prevPhase }: { cards: CardData[]; gamePhase: string; prevPhase?: string }) => {
   // Determine how many cards to show based on phase
   const visibleCount = gamePhase === 'preflop' ? 0 : 
                        gamePhase === 'flop' ? 3 : 
@@ -515,13 +579,28 @@ const CommunityCardsDisplay = ({ cards, gamePhase }: { cards: CardData[]; gamePh
   
   const hiddenCount = 5 - visibleCount;
   
+  // Determine which cards are newly revealed
+  const prevVisibleCount = prevPhase === 'preflop' ? 0 : 
+                           prevPhase === 'flop' ? 3 : 
+                           prevPhase === 'turn' ? 4 : 
+                           prevPhase === 'river' || prevPhase === 'showdown' ? 5 : 0;
+  
   return (
-    <div className="text-center bg-black/20 rounded-lg p-2">
+    <div className="text-center bg-black/20 rounded-lg p-2 relative overflow-hidden">
       <p className="text-xs text-muted-foreground mb-1">🃏 Общие карты</p>
       <div className="flex justify-center gap-1 flex-wrap">
-        {cards.slice(0, visibleCount).map((card, i) => (
-          <PlayingCard key={i} card={card} />
-        ))}
+        {cards.slice(0, visibleCount).map((card, i) => {
+          const isNewCard = i >= prevVisibleCount;
+          return (
+            <PlayingCard 
+              key={i} 
+              card={card}
+              dealAnimation={isNewCard}
+              dealDelay={isNewCard ? (i - prevVisibleCount) * 200 : 0}
+              dealDirection="top"
+            />
+          );
+        })}
         {Array(hiddenCount).fill(0).map((_, i) => (
           <PlayingCard key={`hidden-${i}`} card={{ suit: 'spades', rank: '?' }} hidden />
         ))}
@@ -563,8 +642,11 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [showChipAnimation, setShowChipAnimation] = useState(false);
   const [chipAnimationAmount, setChipAnimationAmount] = useState(0);
   const [showPotAnimation, setShowPotAnimation] = useState(false);
+  const [prevGamePhase, setPrevGamePhase] = useState<string>('');
+  const [showDealAnimation, setShowDealAnimation] = useState(false);
   const lastDuelStatusRef = useRef<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const prevDuelIdRef = useRef<string | null>(null);
 
   const fetchUserId = useCallback(async () => {
     // Check if visitorId is a UUID (profile id) or telegram_id (number string)
@@ -929,6 +1011,24 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   useEffect(() => { fetchUserId(); }, [fetchUserId]);
   useEffect(() => { if (userId) fetchDuels(); }, [userId, fetchDuels]);
   useEffect(() => { if (activeDuel && userId) fetchMyCards(activeDuel.id); }, [activeDuel?.id, activeDuel?.game_phase, userId, fetchMyCards]);
+  
+  // Track phase changes for card animation
+  useEffect(() => {
+    if (activeDuel?.game_phase && activeDuel.game_phase !== prevGamePhase) {
+      setPrevGamePhase(activeDuel.game_phase);
+    }
+  }, [activeDuel?.game_phase, prevGamePhase]);
+  
+  // Trigger deal animation when game starts
+  useEffect(() => {
+    if (activeDuel?.id && activeDuel.id !== prevDuelIdRef.current && activeDuel.status === 'playing') {
+      prevDuelIdRef.current = activeDuel.id;
+      setShowDealAnimation(true);
+      // Reset animation after it completes
+      const timer = setTimeout(() => setShowDealAnimation(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeDuel?.id, activeDuel?.status]);
 
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -1040,7 +1140,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
               </div>
 
               {/* Community Cards */}
-              <CommunityCardsDisplay cards={communityCards} gamePhase={currentDuel.game_phase} />
+              <CommunityCardsDisplay cards={communityCards} gamePhase={currentDuel.game_phase} prevPhase={prevGamePhase} />
 
               {/* All Players Grid */}
               <div className="grid gap-2 grid-cols-2">
@@ -1056,6 +1156,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                   showCards={currentDuel.game_phase === 'showdown'}
                   gamePhase={currentDuel.game_phase}
                   cardsPerPlayer={currentDuel.cards_per_player || 2}
+                  playerIndex={0}
+                  showDealAnimation={showDealAnimation}
                 />
                 
                 {currentDuel.opponent_id && (
@@ -1071,6 +1173,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                     showCards={currentDuel.game_phase === 'showdown'}
                     gamePhase={currentDuel.game_phase}
                     cardsPerPlayer={currentDuel.cards_per_player || 2}
+                    playerIndex={1}
+                    showDealAnimation={showDealAnimation}
                   />
                 )}
                 
@@ -1087,6 +1191,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                     showCards={currentDuel.game_phase === 'showdown'}
                     gamePhase={currentDuel.game_phase}
                     cardsPerPlayer={currentDuel.cards_per_player || 2}
+                    playerIndex={2}
+                    showDealAnimation={showDealAnimation}
                   />
                 )}
                 
@@ -1103,6 +1209,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                     showCards={currentDuel.game_phase === 'showdown'}
                     gamePhase={currentDuel.game_phase}
                     cardsPerPlayer={currentDuel.cards_per_player || 2}
+                    playerIndex={3}
+                    showDealAnimation={showDealAnimation}
                   />
                 )}
               </div>
