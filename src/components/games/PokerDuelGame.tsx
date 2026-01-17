@@ -644,6 +644,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const lastDuelStatusRef = useRef<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const prevDuelIdRef = useRef<string | null>(null);
+  const exitedDuelIdsRef = useRef<Set<string>>(new Set());
 
   const fetchUserId = useCallback(async () => {
     const cleanedVisitorId = String(visitorId).trim().replace(/^"+|"+$/g, '');
@@ -815,6 +816,12 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     const normalizedActive = active ? normalizeDuelIds(active) : null;
 
     if (normalizedActive) { 
+      // Skip if this duel was already exited by user
+      if (exitedDuelIdsRef.current.has(normalizedActive.id)) {
+        // Don't show this duel again
+        return;
+      }
+      
       // Check if game just ended - trigger animation
       if (normalizedActive.game_phase === 'showdown' && lastDuelStatusRef.current !== 'showdown') {
         // Clean user ID for comparison
@@ -882,13 +889,22 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   }, [getCleanUserId, cleanUuid, fetchMyCards, finishedDuel]);
 
   const exitGame = () => {
+    // Mark current duel as exited so it won't be shown again
+    if (finishedDuel?.id) {
+      exitedDuelIdsRef.current.add(finishedDuel.id);
+    }
+    if (activeDuel?.id) {
+      exitedDuelIdsRef.current.add(activeDuel.id);
+    }
+    
     setFinishedDuel(null);
     setActiveDuel(null);
+    setShowResultAnimation(false);
     setMyCards([]);
     setCommunityCards([]);
     setAllPlayerCards({});
     lastDuelStatusRef.current = null;
-    fetchDuels();
+    // Don't call fetchDuels immediately - let it happen on next interval
   };
 
   const searchUsers = async () => {
