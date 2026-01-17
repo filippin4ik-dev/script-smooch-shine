@@ -615,7 +615,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [betAmount, setBetAmount] = useState('100');
   const [raiseAmount, setRaiseAmount] = useState('50');
   const [maxPlayers, setMaxPlayers] = useState('2');
-  const FIXED_CARDS_PER_PLAYER = 3;
+  const FIXED_CARDS_PER_PLAYER = 2;
   const [maxBalance, setMaxBalance] = useState(500);
   const [availableDuels, setAvailableDuels] = useState<Duel[]>([]);
   const [myInvitations, setMyInvitations] = useState<Duel[]>([]);
@@ -679,8 +679,15 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setLoading(false);
   }, [visitorId]);
 
+  // Helper to get clean user ID for RPC calls
+  const getCleanUserId = useCallback(() => {
+    if (!userId) return null;
+    return String(userId).trim().replace(/^"+|"+$/g, '').replace(/"/g, '');
+  }, [userId]);
+
   const fetchMyCards = useCallback(async (duelId: string) => {
-    if (!userId) return;
+    const cleanId = getCleanUserId();
+    if (!cleanId) return;
     const { data: duel } = await supabase
       .from('poker_duels')
       .select('creator_id, opponent_id, player3_id, player4_id, creator_cards, opponent_cards, player3_cards, player4_cards, community_cards, game_phase')
@@ -688,13 +695,13 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       .single();
     
     if (duel) {
-      if (userId === duel.creator_id && duel.creator_cards) {
+      if (cleanId === duel.creator_id && duel.creator_cards) {
         setMyCards(duel.creator_cards as CardData[]);
-      } else if (userId === duel.opponent_id && duel.opponent_cards) {
+      } else if (cleanId === duel.opponent_id && duel.opponent_cards) {
         setMyCards(duel.opponent_cards as CardData[]);
-      } else if (userId === duel.player3_id && duel.player3_cards) {
+      } else if (cleanId === duel.player3_id && duel.player3_cards) {
         setMyCards(duel.player3_cards as CardData[]);
-      } else if (userId === duel.player4_id && duel.player4_cards) {
+      } else if (cleanId === duel.player4_id && duel.player4_cards) {
         setMyCards(duel.player4_cards as CardData[]);
       }
       
@@ -711,7 +718,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         setAllPlayerCards({});
       }
     }
-  }, [userId]);
+  }, [getCleanUserId]);
 
   const fetchDuels = useCallback(async () => {
     if (!userId) return;
@@ -827,15 +834,17 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   };
 
   const searchUsers = async () => {
-    if (!searchQuery.trim() || !userId) return;
+    const cleanId = getCleanUserId();
+    if (!searchQuery.trim() || !cleanId) return;
     setSearchLoading(true);
-    const { data } = await supabase.rpc('search_users_for_duel', { search_query: searchQuery.trim(), current_user_id: userId });
+    const { data } = await supabase.rpc('search_users_for_duel', { search_query: searchQuery.trim(), current_user_id: cleanId });
     if (data) setSearchResults(data as SearchUser[]);
     setSearchLoading(false);
   };
 
   const createDuel = async (invitedUserId?: string) => {
-    if (!userId) return;
+    const cleanId = getCleanUserId();
+    if (!cleanId) return;
     const amount = parseFloat(betAmount);
     if (isNaN(amount) || amount < 10) { toast.error('Минимальная ставка 10₽'); return; }
     if (amount > balance) { toast.error('Недостаточно средств'); return; }
@@ -847,7 +856,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     const numCards = FIXED_CARDS_PER_PLAYER;
     
     const { data, error } = await supabase.rpc('create_multiplayer_poker_duel', { 
-      p_user_id: userId, 
+      p_user_id: cleanId, 
       p_bet_amount: Math.floor(amount), 
       p_max_players: numPlayers,
       p_cards_per_player: numCards,
@@ -880,26 +889,29 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   };
 
   const cancelDuel = async (duelId: string) => {
-    if (!userId) return;
-    const { error } = await supabase.rpc('cancel_poker_duel_v2', { p_duel_id: duelId, p_user_id: userId });
+    const cleanId = getCleanUserId();
+    if (!cleanId) return;
+    const { error } = await supabase.rpc('cancel_poker_duel_v2', { p_duel_id: duelId, p_user_id: cleanId });
     if (error) toast.error(error.message); 
     else { toast.success('Дуэль отменена'); onBalanceUpdate(); fetchDuels(); }
   };
 
   const declineDuel = async (duelId: string) => {
-    if (!userId) return;
-    const { error } = await supabase.rpc('decline_poker_duel', { p_duel_id: duelId, p_user_id: userId });
+    const cleanId = getCleanUserId();
+    if (!cleanId) return;
+    const { error } = await supabase.rpc('decline_poker_duel', { p_duel_id: duelId, p_user_id: cleanId });
     if (error) toast.error(error.message); 
     else { toast.success('Приглашение отклонено'); fetchDuels(); }
   };
 
   const joinDuel = async (duelId: string) => {
-    if (!userId) return;
+    const cleanId = getCleanUserId();
+    if (!cleanId) return;
     setJoiningDuelId(duelId);
     
     const { data, error } = await supabase.rpc('join_multiplayer_poker_duel', { 
       p_duel_id: duelId, 
-      p_user_id: userId 
+      p_user_id: cleanId 
     });
     
     if (error) {
@@ -917,13 +929,13 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   };
 
   const performAction = async (action: string, raiseAmt?: number) => {
-    if (!userId || !activeDuel) return;
+    const cleanId = getCleanUserId();
+    if (!cleanId || !activeDuel) return;
     setActionLoading(true);
-    // (chip animations removed)
     
     const { data, error } = await supabase.rpc('multiplayer_poker_action', { 
       p_duel_id: activeDuel.id, 
-      p_user_id: userId, 
+      p_user_id: cleanId, 
       p_action: action, 
       p_raise_amount: raiseAmt || 0 
     });
@@ -934,7 +946,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       if (action === 'fold') toast.info('Вы сбросили карты');
       else if (data.game_ended) {
         const winners = data.winners as string[];
-        if (winners && winners.includes(userId)) {
+        if (winners && winners.includes(cleanId)) {
           toast.success('Вы выиграли!');
         } else {
           toast.error('Вы проиграли');
