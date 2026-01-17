@@ -649,26 +649,36 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const prevDuelIdRef = useRef<string | null>(null);
 
   const fetchUserId = useCallback(async () => {
+    const cleanedVisitorId = String(visitorId).trim().replace(/^"+|"+$/g, '');
+
     // Check if visitorId is a UUID (profile id) or telegram_id (number string)
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(visitorId);
-    
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanedVisitorId);
+
     if (isUUID) {
       // visitorId is already a profile UUID
-      setUserId(visitorId);
+      setUserId(cleanedVisitorId);
       setLoading(false);
       return;
     }
-    
+
     // visitorId is telegram_id, need to fetch profile UUID
-    const telegramId = parseInt(visitorId);
+    const telegramId = parseInt(cleanedVisitorId, 10);
     if (isNaN(telegramId)) {
       console.error('Invalid visitorId:', visitorId);
       setLoading(false);
       return;
     }
-    
-    const { data } = await supabase.from('profiles').select('id').eq('telegram_id', telegramId).maybeSingle();
-    if (data) setUserId(data.id);
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', telegramId)
+      .maybeSingle();
+
+    if (data?.id) {
+      setUserId(String(data.id).trim().replace(/^"+|"+$/g, ''));
+    }
+
     setLoading(false);
   }, [visitorId]);
 
@@ -708,12 +718,14 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
 
   const fetchDuels = useCallback(async () => {
     if (!userId) return;
+
+    const safeUserId = String(userId).trim().replace(/^"+|"+$/g, '');
     
     const { data: available } = await supabase
       .from('poker_duels')
       .select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`)
       .eq('status', 'waiting')
-      .neq('creator_id', userId)
+      .neq('creator_id', safeUserId)
       .is('invited_user_id', null)
       .order('created_at', { ascending: false })
       .limit(20);
@@ -721,16 +733,16 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     const { data: invitations } = await supabase
       .from('poker_duels')
       .select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`)
-      .eq('invited_user_id', userId)
+      .eq('invited_user_id', safeUserId)
       .eq('status', 'invited')
       .order('created_at', { ascending: false });
     
     // Build proper OR filter conditions
     const orFilter = [
-      `creator_id.eq.${userId}`,
-      `opponent_id.eq.${userId}`,
-      `player3_id.eq.${userId}`,
-      `player4_id.eq.${userId}`
+      `creator_id.eq.${safeUserId}`,
+      `opponent_id.eq.${safeUserId}`,
+      `player3_id.eq.${safeUserId}`,
+      `player4_id.eq.${safeUserId}`
     ].join(',');
     
     const { data: active } = await supabase
