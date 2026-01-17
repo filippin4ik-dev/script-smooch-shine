@@ -924,6 +924,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (amount > balance) { toast.error('Недостаточно средств'); return; }
     if (amount > maxBalance) { toast.error('Ставка превышает максимальный баланс'); return; }
     
+    // Clear exited duels list for new game
+    exitedDuelIdsRef.current.clear();
+    
     setCreatingDuel(true);
     
     const numPlayers = parseInt(maxPlayers);
@@ -981,6 +984,10 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const joinDuel = async (duelId: string) => {
     const cleanId = getCleanUserId();
     if (!cleanId) return;
+    
+    // Clear exited duels list when joining
+    exitedDuelIdsRef.current.clear();
+    
     setJoiningDuelId(duelId);
     
     const { data, error } = await supabase.rpc('join_multiplayer_poker_duel', { 
