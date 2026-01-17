@@ -615,7 +615,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [betAmount, setBetAmount] = useState('100');
   const [raiseAmount, setRaiseAmount] = useState('50');
   const [maxPlayers, setMaxPlayers] = useState('2');
-  const [cardsPerPlayer, setCardsPerPlayer] = useState('3');
+  const FIXED_CARDS_PER_PLAYER = 3;
   const [maxBalance, setMaxBalance] = useState(500);
   const [availableDuels, setAvailableDuels] = useState<Duel[]>([]);
   const [myInvitations, setMyInvitations] = useState<Duel[]>([]);
@@ -639,9 +639,6 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [showResultAnimation, setShowResultAnimation] = useState(false);
   const [resultAnimationType, setResultAnimationType] = useState<'win' | 'lose' | 'draw'>('win');
   const [resultAnimationAmount, setResultAnimationAmount] = useState(0);
-  const [showChipAnimation, setShowChipAnimation] = useState(false);
-  const [chipAnimationAmount, setChipAnimationAmount] = useState(0);
-  const [showPotAnimation, setShowPotAnimation] = useState(false);
   const [prevGamePhase, setPrevGamePhase] = useState<string>('');
   const [showDealAnimation, setShowDealAnimation] = useState(false);
   const lastDuelStatusRef = useRef<string | null>(null);
@@ -847,7 +844,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setCreatingDuel(true);
     
     const numPlayers = parseInt(maxPlayers);
-    const numCards = parseInt(cardsPerPlayer);
+    const numCards = FIXED_CARDS_PER_PLAYER;
     
     const { data, error } = await supabase.rpc('create_multiplayer_poker_duel', { 
       p_user_id: userId, 
@@ -922,31 +919,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const performAction = async (action: string, raiseAmt?: number) => {
     if (!userId || !activeDuel) return;
     setActionLoading(true);
-    
-    // Trigger chip animation for betting actions
-    if (action !== 'fold' && action !== 'check') {
-      const betAmount = action === 'call' 
-        ? Math.max(0, Math.max(
-            activeDuel.creator_current_bet || 0,
-            activeDuel.opponent_current_bet || 0,
-            activeDuel.player3_current_bet || 0,
-            activeDuel.player4_current_bet || 0
-          ) - (
-            userId === activeDuel.creator_id ? activeDuel.creator_current_bet :
-            userId === activeDuel.opponent_id ? activeDuel.opponent_current_bet :
-            userId === activeDuel.player3_id ? activeDuel.player3_current_bet :
-            activeDuel.player4_current_bet || 0
-          ))
-        : action === 'all-in' 
-          ? Math.min(balance, activeDuel.max_balance || 1000)
-          : raiseAmt || 0;
-      
-      if (betAmount > 0) {
-        setChipAnimationAmount(betAmount);
-        setShowChipAnimation(true);
-        setShowPotAnimation(true);
-      }
-    }
+    // (chip animations removed)
     
     const { data, error } = await supabase.rpc('multiplayer_poker_action', { 
       p_duel_id: activeDuel.id, 
@@ -957,7 +930,6 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     
     if (error) {
       toast.error(error.message);
-      setShowChipAnimation(false);
     } else if (data) {
       if (action === 'fold') toast.info('Вы сбросили карты');
       else if (data.game_ended) {
@@ -1125,22 +1097,11 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 </Badge>
               </div>
 
-              {/* Pot with Chips Animation */}
-              <div className="relative flex justify-center py-2">
-                <div className="relative">
-                  <PotDisplay pot={currentDuel.pot || 0} showAnimation={showPotAnimation} />
-                  
-                  {/* Flying Chips Animation */}
-                  <FlyingChips 
-                    show={showChipAnimation} 
-                    amount={chipAnimationAmount}
-                    fromPosition="bottom"
-                    onComplete={() => {
-                      setShowChipAnimation(false);
-                      setShowPotAnimation(false);
-                    }}
-                  />
-                </div>
+              {/* Pot */}
+              <div className="flex justify-center py-2">
+                <Badge variant="secondary" className="text-sm">
+                  Банк: {(currentDuel.pot || 0).toFixed(0)}₽
+                </Badge>
               </div>
 
               {/* Timer - only show if game is active */}
@@ -1410,15 +1371,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Карт на руках</label>
-                  <Select value={cardsPerPlayer} onValueChange={setCardsPerPlayer}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2">2 карты</SelectItem>
-                      <SelectItem value="3">3 карты</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="mt-2 text-sm font-medium">
+                    {FIXED_CARDS_PER_PLAYER} карты
+                  </div>
                 </div>
               </div>
               
