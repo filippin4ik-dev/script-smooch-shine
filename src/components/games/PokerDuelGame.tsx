@@ -1077,8 +1077,11 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
             
             if (callAmount === 0) {
               performAction('check');
+              toast.info('Время вышло - автоматический чек');
             } else {
-              performAction('call');
+              // If there's a raise to match and timer expires - auto fold (loss)
+              performAction('fold');
+              toast.warning('Время вышло - автоматический фолд');
             }
           }
           return TURN_TIME_SECONDS;
