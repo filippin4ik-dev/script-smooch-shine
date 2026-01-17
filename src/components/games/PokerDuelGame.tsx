@@ -784,38 +784,67 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       .order('finished_at', { ascending: false })
       .limit(10);
     
-    setAvailableDuels([...(myWaiting?.filter(d => d.creator_id !== userId) || []), ...(available || [])] as Duel[]);
-    setMyInvitations((invitations || []) as Duel[]);
-    setRecentGames((recent || []) as Duel[]);
-    
-    if (active) { 
+    const normalizeDuelIds = (d: any): Duel => {
+      const winners = Array.isArray(d?.winners) ? (d.winners as unknown[]).map(cleanUuid) : null;
+      return {
+        ...d,
+        id: cleanUuid(d?.id),
+        creator_id: cleanUuid(d?.creator_id),
+        opponent_id: d?.opponent_id ? cleanUuid(d.opponent_id) : null,
+        player3_id: d?.player3_id ? cleanUuid(d.player3_id) : null,
+        player4_id: d?.player4_id ? cleanUuid(d.player4_id) : null,
+        invited_user_id: d?.invited_user_id ? cleanUuid(d.invited_user_id) : null,
+        current_turn: d?.current_turn ? cleanUuid(d.current_turn) : null,
+        winner_id: d?.winner_id ? cleanUuid(d.winner_id) : null,
+        winners,
+      } as Duel;
+    };
+
+    const normalizedAvailable = (available || []).map(normalizeDuelIds);
+    const normalizedMyWaiting = (myWaiting || []).map(normalizeDuelIds);
+    const normalizedInvitations = (invitations || []).map(normalizeDuelIds);
+    const normalizedRecent = (recent || []).map(normalizeDuelIds);
+
+    setAvailableDuels([
+      ...normalizedMyWaiting.filter((d) => d.creator_id !== safeUserId),
+      ...normalizedAvailable,
+    ] as Duel[]);
+    setMyInvitations(normalizedInvitations as Duel[]);
+    setRecentGames(normalizedRecent as Duel[]);
+
+    const normalizedActive = active ? normalizeDuelIds(active) : null;
+
+    if (normalizedActive) { 
       // Check if game just ended - trigger animation
-      if (active.game_phase === 'showdown' && lastDuelStatusRef.current !== 'showdown') {
-        const iWon = active.winner_id === userId || (active.winners && (active.winners as string[]).includes(userId));
-        if (active.is_draw || (active.winners && (active.winners as string[]).length > 1)) {
+      if (normalizedActive.game_phase === 'showdown' && lastDuelStatusRef.current !== 'showdown') {
+        const iWon =
+          normalizedActive.winner_id === safeUserId ||
+          (normalizedActive.winners && normalizedActive.winners.includes(safeUserId));
+
+        if (normalizedActive.is_draw || (normalizedActive.winners && normalizedActive.winners.length > 1)) {
           setResultAnimationType('draw');
-          const winnersCount = active.winners ? (active.winners as string[]).length : 2;
-          setResultAnimationAmount((active.pot * 0.95) / winnersCount);
+          const winnersCount = normalizedActive.winners ? normalizedActive.winners.length : 2;
+          setResultAnimationAmount((normalizedActive.pot * 0.95) / winnersCount);
         } else if (iWon) {
           setResultAnimationType('win');
-          setResultAnimationAmount(active.pot * 0.95);
+          setResultAnimationAmount(normalizedActive.pot * 0.95);
         } else {
           setResultAnimationType('lose');
           setResultAnimationAmount(0);
         }
         setShowResultAnimation(true);
         // Save as finished duel for display
-        setFinishedDuel(active as Duel);
+        setFinishedDuel(normalizedActive as Duel);
       }
-      lastDuelStatusRef.current = active.game_phase;
+      lastDuelStatusRef.current = normalizedActive.game_phase;
       
-      if (active.status !== 'finished') {
-        setActiveDuel(active as Duel); 
-        fetchMyCards(active.id);
+      if (normalizedActive.status !== 'finished') {
+        setActiveDuel(normalizedActive as Duel); 
+        fetchMyCards(normalizedActive.id);
       }
       
-      if (active.last_action_at) {
-        const elapsed = Math.floor((Date.now() - new Date(active.last_action_at).getTime()) / 1000);
+      if (normalizedActive.last_action_at) {
+        const elapsed = Math.floor((Date.now() - new Date(normalizedActive.last_action_at).getTime()) / 1000);
         setTimeLeft(Math.max(0, TURN_TIME_SECONDS - elapsed));
       } else {
         setTimeLeft(TURN_TIME_SECONDS);
@@ -829,7 +858,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         setAllPlayerCards({});
       }
     }
-  }, [userId, fetchMyCards, finishedDuel]);
+  }, [getCleanUserId, cleanUuid, fetchMyCards, finishedDuel]);
 
   const exitGame = () => {
     setFinishedDuel(null);
