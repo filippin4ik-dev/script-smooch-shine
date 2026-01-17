@@ -725,20 +725,28 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       .eq('status', 'invited')
       .order('created_at', { ascending: false });
     
+    // Build proper OR filter conditions
+    const orFilter = [
+      `creator_id.eq.${userId}`,
+      `opponent_id.eq.${userId}`,
+      `player3_id.eq.${userId}`,
+      `player4_id.eq.${userId}`
+    ].join(',');
+    
     const { data: active } = await supabase
       .from('poker_duels')
       .select(`*, 
         creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), 
         opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`)
       .in('status', ['playing', 'betting', 'waiting'])
-      .or(`creator_id.eq.${userId},opponent_id.eq.${userId},player3_id.eq.${userId},player4_id.eq.${userId}`)
+      .or(orFilter)
       .maybeSingle();
     
     const { data: myWaiting } = await supabase
       .from('poker_duels')
       .select(`*, creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url)`)
       .in('status', ['waiting', 'invited'])
-      .or(`creator_id.eq.${userId},opponent_id.eq.${userId},player3_id.eq.${userId},player4_id.eq.${userId}`)
+      .or(orFilter)
       .order('created_at', { ascending: false });
     
     const { data: recent } = await supabase
@@ -748,7 +756,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
         opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url),
         creator_cards, opponent_cards, player3_cards, player4_cards, community_cards`)
       .eq('status', 'finished')
-      .or(`creator_id.eq.${userId},opponent_id.eq.${userId},player3_id.eq.${userId},player4_id.eq.${userId}`)
+      .or(orFilter)
       .order('finished_at', { ascending: false })
       .limit(10);
     
