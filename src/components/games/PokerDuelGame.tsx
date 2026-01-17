@@ -758,14 +758,21 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       `player4_id.eq.${safeUserId}`
     ].join(',');
     
-    const { data: active } = await supabase
+    const { data: active, error: activeError } = await supabase
       .from('poker_duels')
       .select(`*, 
         creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), 
         opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`)
       .in('status', ['playing', 'betting', 'waiting'])
       .or(orFilter)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
+
+    if (activeError) {
+      // If more than one row matches, limit(1) prevents errors; still log unexpected errors.
+      console.warn('[POKER DEBUG] active duel query error:', activeError);
+    }
     
     const { data: myWaiting } = await supabase
       .from('poker_duels')
