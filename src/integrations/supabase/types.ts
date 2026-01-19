@@ -4465,8 +4465,8 @@ export type Database = {
       multiplayer_poker_action: {
         Args: {
           p_action: string
-          p_amount?: number
           p_duel_id: string
+          p_raise_amount?: number
           p_user_id: string
         }
         Returns: Json
