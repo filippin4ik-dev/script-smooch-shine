@@ -1029,7 +1029,17 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     });
     
     if (error) {
-      toast.error(error.message);
+      console.error('multiplayer_poker_action error', {
+        message: error.message,
+        details: (error as any).details,
+        hint: (error as any).hint,
+        code: (error as any).code,
+      });
+      toast.error(
+        (error as any).details
+          ? `${error.message} — ${(error as any).details}`
+          : error.message
+      );
     } else if (data) {
       if (action === 'fold') toast.info('Вы сбросили карты');
       else if (data.game_ended) {
