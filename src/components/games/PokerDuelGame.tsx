@@ -485,6 +485,7 @@ const GameHistoryDialog = ({ duel, open, onOpenChange, userId }: { duel: Duel | 
 // Player card component for multiplayer view
 const PlayerCardSlot = ({ 
   player, 
+  playerId,
   cards, 
   currentBet, 
   handRank, 
@@ -499,6 +500,7 @@ const PlayerCardSlot = ({
   showDealAnimation = false
 }: { 
   player: { username: string; public_id: number } | undefined;
+  playerId: string | null;
   cards: CardData[] | null;
   currentBet: number;
   handRank: string | null;
@@ -512,9 +514,13 @@ const PlayerCardSlot = ({
   playerIndex?: number;
   showDealAnimation?: boolean;
 }) => {
-  if (!player) return null;
+  // Don't render if there's no player id
+  if (!playerId) return null;
   
-  const bgColor = isFolded 
+  // Use player data or fallback
+  const displayName = player?.username || `Игрок ${playerIndex + 1}`;
+  
+  const bgColor = isFolded
     ? 'bg-gray-900/50 opacity-50' 
     : isCurrentTurn 
     ? 'bg-yellow-900/30 ring-2 ring-yellow-500' 
@@ -528,7 +534,7 @@ const PlayerCardSlot = ({
   return (
     <div className={`text-center rounded-lg p-2 ${bgColor} transition-all`}>
       <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
-        {isMe ? '🎮' : '👤'} {player.username}
+        {isMe ? '🎮' : '👤'} {displayName}
         {isFolded && <Badge variant="destructive" className="text-[10px] px-1 py-0">Фолд</Badge>}
         {isCurrentTurn && !isFolded && <Badge variant="default" className="text-[10px] px-1 py-0 animate-pulse">Ход</Badge>}
       </p>
@@ -762,7 +768,9 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       .from('poker_duels')
       .select(`*, 
         creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), 
-        opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url)`)
+        opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url),
+        player3:profiles!poker_duels_player3_id_fkey(username, public_id, avatar_url),
+        player4:profiles!poker_duels_player4_id_fkey(username, public_id, avatar_url)`)
       .in('status', ['playing', 'betting', 'waiting'])
       .or(orFilter)
       .order('created_at', { ascending: false })
@@ -786,6 +794,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       .select(`*, 
         creator:profiles!poker_duels_creator_id_fkey(username, public_id, avatar_url), 
         opponent:profiles!poker_duels_opponent_id_fkey(username, public_id, avatar_url),
+        player3:profiles!poker_duels_player3_id_fkey(username, public_id, avatar_url),
+        player4:profiles!poker_duels_player4_id_fkey(username, public_id, avatar_url),
         creator_cards, opponent_cards, player3_cards, player4_cards, community_cards`)
       .eq('status', 'finished')
       .or(orFilter)
@@ -1244,6 +1254,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
               <div className="grid gap-2 grid-cols-2">
                 <PlayerCardSlot
                   player={currentDuel.creator}
+                  playerId={currentDuel.creator_id}
                   cards={allPlayerCards[currentDuel.creator_id] || (myRole === 'creator' ? myCards : null)}
                   currentBet={currentDuel.creator_current_bet || 0}
                   handRank={currentDuel.creator_hand_rank}
@@ -1261,6 +1272,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 {currentDuel.opponent_id && (
                   <PlayerCardSlot
                     player={currentDuel.opponent}
+                    playerId={currentDuel.opponent_id}
                     cards={allPlayerCards[currentDuel.opponent_id] || (myRole === 'opponent' ? myCards : null)}
                     currentBet={currentDuel.opponent_current_bet || 0}
                     handRank={currentDuel.opponent_hand_rank}
@@ -1279,6 +1291,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 {currentDuel.player3_id && (
                   <PlayerCardSlot
                     player={currentDuel.player3}
+                    playerId={currentDuel.player3_id}
                     cards={allPlayerCards[currentDuel.player3_id] || (myRole === 'player3' ? myCards : null)}
                     currentBet={currentDuel.player3_current_bet || 0}
                     handRank={currentDuel.player3_hand_rank}
@@ -1297,6 +1310,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 {currentDuel.player4_id && (
                   <PlayerCardSlot
                     player={currentDuel.player4}
+                    playerId={currentDuel.player4_id}
                     cards={allPlayerCards[currentDuel.player4_id] || (myRole === 'player4' ? myCards : null)}
                     currentBet={currentDuel.player4_current_bet || 0}
                     handRank={currentDuel.player4_hand_rank}
