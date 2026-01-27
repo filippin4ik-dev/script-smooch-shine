@@ -1074,7 +1074,8 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
       return;
     }
 
-    const isMyTurn = activeDuel.current_turn === userId;
+    const cleanId = getCleanUserId();
+    const isMyTurn = !!cleanId && activeDuel.current_turn === cleanId;
     
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -1088,10 +1089,10 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
             );
             
             let myBet = 0;
-            if (userId === activeDuel.creator_id) myBet = activeDuel.creator_current_bet || 0;
-            else if (userId === activeDuel.opponent_id) myBet = activeDuel.opponent_current_bet || 0;
-            else if (userId === activeDuel.player3_id) myBet = activeDuel.player3_current_bet || 0;
-            else if (userId === activeDuel.player4_id) myBet = activeDuel.player4_current_bet || 0;
+              if (cleanId === activeDuel.creator_id) myBet = activeDuel.creator_current_bet || 0;
+              else if (cleanId === activeDuel.opponent_id) myBet = activeDuel.opponent_current_bet || 0;
+              else if (cleanId === activeDuel.player3_id) myBet = activeDuel.player3_current_bet || 0;
+              else if (cleanId === activeDuel.player4_id) myBet = activeDuel.player4_current_bet || 0;
             
             const callAmount = maxBet - myBet;
             
@@ -1113,7 +1114,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [activeDuel?.id, activeDuel?.current_turn, userId, actionLoading]);
+  }, [activeDuel?.id, activeDuel?.current_turn, getCleanUserId, actionLoading]);
 
   useEffect(() => { 
     if (!userId) return; 
@@ -1149,17 +1150,19 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
 
   const getMyRole = () => {
     const duel = activeDuel || finishedDuel;
-    if (!duel || !userId) return null;
-    if (userId === duel.creator_id) return 'creator';
-    if (userId === duel.opponent_id) return 'opponent';
-    if (userId === duel.player3_id) return 'player3';
-    if (userId === duel.player4_id) return 'player4';
+    const cleanId = getCleanUserId();
+    if (!duel || !cleanId) return null;
+    if (cleanId === duel.creator_id) return 'creator';
+    if (cleanId === duel.opponent_id) return 'opponent';
+    if (cleanId === duel.player3_id) return 'player3';
+    if (cleanId === duel.player4_id) return 'player4';
     return null;
   };
 
   const currentDuel = activeDuel || finishedDuel;
   const myRole = getMyRole();
-  const isMyTurn = currentDuel?.current_turn === userId;
+  const cleanUserId = getCleanUserId();
+  const isMyTurn = !!cleanUserId && currentDuel?.current_turn === cleanUserId;
   
   const maxBet = currentDuel ? Math.max(
     currentDuel.creator_current_bet || 0,
@@ -1178,7 +1181,6 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const callAmount = Math.max(0, maxBet - (myCurrentBet || 0));
   const canCheck = callAmount === 0;
   
-  const cleanUserId = getCleanUserId();
   const iWon = cleanUserId && currentDuel ? (
     currentDuel.winner_id === cleanUserId || 
     (currentDuel.winners && currentDuel.winners.includes(cleanUserId))
@@ -1438,7 +1440,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                 <Badge variant="secondary">Макс: {activeDuel.max_balance}₽</Badge>
               </div>
               <Progress value={(activeDuel.current_players / activeDuel.max_players) * 100} className="h-2" />
-              {activeDuel.creator_id === userId && (
+              {cleanUserId && activeDuel.creator_id === cleanUserId && (
                 <Button variant="destructive" size="sm" onClick={() => cancelDuel(activeDuel.id)}>
                   Отменить
                 </Button>
