@@ -1690,6 +1690,49 @@ export type Database = {
         }
         Relationships: []
       }
+      poker_duel_exits: {
+        Row: {
+          duel_id: string
+          exited_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          duel_id: string
+          exited_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          duel_id?: string
+          exited_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_duel_exits_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "poker_duels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duel_exits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_duel_exits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       poker_duels: {
         Row: {
           active_players_count: number | null
@@ -2940,6 +2983,51 @@ export type Database = {
           },
           {
             foreignKeyName: "user_moderation_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_poker_settings: {
+        Row: {
+          default_bet_amount: number
+          default_max_balance: number
+          default_max_players: number
+          default_raise_amount: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          default_bet_amount?: number
+          default_max_balance?: number
+          default_max_players?: number
+          default_raise_amount?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          default_bet_amount?: number
+          default_max_balance?: number
+          default_max_players?: number
+          default_raise_amount?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_poker_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_poker_settings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "public_profiles"
