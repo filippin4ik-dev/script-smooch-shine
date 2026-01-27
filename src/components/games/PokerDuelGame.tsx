@@ -647,10 +647,11 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   const [resultAnimationAmount, setResultAnimationAmount] = useState(0);
   const [prevGamePhase, setPrevGamePhase] = useState<string>('');
   const [showDealAnimation, setShowDealAnimation] = useState(false);
+  const [exitedDuelIds, setExitedDuelIds] = useState<Set<string>>(new Set());
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const lastDuelStatusRef = useRef<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const prevDuelIdRef = useRef<string | null>(null);
-  const exitedDuelIdsRef = useRef<Set<string>>(new Set());
 
   const fetchUserId = useCallback(async () => {
     const cleanedVisitorId = String(visitorId).trim().replace(/^"+|"+$/g, '');
@@ -834,7 +835,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
 
     if (normalizedActive) { 
       // Skip if this duel was already exited by user
-      if (exitedDuelIdsRef.current.has(normalizedActive.id)) {
+      if (exitedDuelIds.has(normalizedActive.id)) {
         // Don't show this duel again
         return;
       }
@@ -905,13 +906,18 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     }
   }, [getCleanUserId, cleanUuid, fetchMyCards, finishedDuel]);
 
-  const exitGame = () => {
-    // Mark current duel as exited so it won't be shown again
-    if (finishedDuel?.id) {
-      exitedDuelIdsRef.current.add(finishedDuel.id);
-    }
-    if (activeDuel?.id) {
-      exitedDuelIdsRef.current.add(activeDuel.id);
+  const exitGame = async () => {
+    const cleanId = getCleanUserId();
+    const duelId = finishedDuel?.id || activeDuel?.id;
+    
+    // Save exit to database
+    if (cleanId && duelId) {
+      await supabase.from('poker_duel_exits').upsert({
+        user_id: cleanId,
+        duel_id: duelId
+      }, { onConflict: 'user_id,duel_id' });
+      
+      setExitedDuelIds(prev => new Set([...prev, duelId]));
     }
     
     setFinishedDuel(null);
@@ -921,7 +927,6 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     setCommunityCards([]);
     setAllPlayerCards({});
     lastDuelStatusRef.current = null;
-    // Don't call fetchDuels immediately - let it happen on next interval
   };
 
   const searchUsers = async () => {
@@ -942,7 +947,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (amount > maxBalance) { toast.error('Ставка превышает максимальный баланс'); return; }
     
     // Clear exited duels list for new game
-    exitedDuelIdsRef.current.clear();
+    setExitedDuelIds(new Set());
     
     setCreatingDuel(true);
     
@@ -972,6 +977,16 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
           });
         }
       }
+      // Save user settings to DB
+      await supabase.from('user_poker_settings').upsert({
+        user_id: cleanId,
+        default_bet_amount: amount,
+        default_max_balance: maxBalance,
+        default_max_players: numPlayers,
+        default_raise_amount: parseFloat(raiseAmount) || 50,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+      
       onBalanceUpdate(); 
       fetchDuels(); 
       setShowInviteDialog(false); 
@@ -1003,7 +1018,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     if (!cleanId) return;
     
     // Clear exited duels list when joining
-    exitedDuelIdsRef.current.clear();
+    setExitedDuelIds(new Set());
     
     setJoiningDuelId(duelId);
     
@@ -1125,6 +1140,44 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
   }, [userId, fetchDuels]);
   
   useEffect(() => { fetchUserId(); }, [fetchUserId]);
+  
+  // Load exited duels and user settings from DB
+  useEffect(() => {
+    if (!userId) return;
+    
+    const loadUserData = async () => {
+      const cleanId = getCleanUserId();
+      if (!cleanId) return;
+      
+      // Load exited duels
+      const { data: exits } = await supabase
+        .from('poker_duel_exits')
+        .select('duel_id')
+        .eq('user_id', cleanId);
+      
+      if (exits && exits.length > 0) {
+        setExitedDuelIds(new Set(exits.map(e => e.duel_id)));
+      }
+      
+      // Load user settings
+      const { data: settings } = await supabase
+        .from('user_poker_settings')
+        .select('*')
+        .eq('user_id', cleanId)
+        .maybeSingle();
+      
+      if (settings) {
+        setBetAmount(String(settings.default_bet_amount));
+        setMaxBalance(settings.default_max_balance);
+        setMaxPlayers(String(settings.default_max_players));
+        setRaiseAmount(String(settings.default_raise_amount));
+      }
+      setSettingsLoaded(true);
+    };
+    
+    loadUserData();
+  }, [userId, getCleanUserId]);
+  
   useEffect(() => { if (userId) fetchDuels(); }, [userId, fetchDuels]);
   useEffect(() => { if (activeDuel && userId) fetchMyCards(activeDuel.id); }, [activeDuel?.id, activeDuel?.game_phase, userId, fetchMyCards]);
   
