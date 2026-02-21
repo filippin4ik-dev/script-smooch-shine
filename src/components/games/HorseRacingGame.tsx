@@ -7,46 +7,45 @@ import { useBalanceMode } from "@/hooks/useBalanceMode";
 import { useProfile } from "@/hooks/useProfile";
 import { useTelegramAuth } from "@/hooks/useTelegramAuth";
 import { useQuery } from "@tanstack/react-query";
+import { Trophy, Zap, Timer } from "lucide-react";
 
 const HORSE_COLORS = [
-  '#8B4513', '#2F2F2F', '#D2691E', '#F5F5DC', '#8B0000', '#4A4A4A',
+  { main: '#C41E3A', accent: '#FF6B6B', name: 'from-red-600 to-red-400' },
+  { main: '#1E40AF', accent: '#60A5FA', name: 'from-blue-700 to-blue-400' },
+  { main: '#15803D', accent: '#4ADE80', name: 'from-green-700 to-green-400' },
+  { main: '#B45309', accent: '#FCD34D', name: 'from-amber-700 to-yellow-300' },
+  { main: '#7C3AED', accent: '#C084FC', name: 'from-violet-600 to-purple-300' },
+  { main: '#0E7490', accent: '#22D3EE', name: 'from-cyan-700 to-cyan-300' },
 ];
-const JOCKEY_COLORS = [
-  '#dc2626', '#2563eb', '#16a34a', '#ca8a04', '#9333ea', '#db2777',
-];
+
 const HORSE_NAMES = ['Молния', 'Буря', 'Ветер', 'Гром', 'Звезда', 'Комета'];
+const HORSE_EMOJI = ['⚡', '🌪️', '💨', '⛈️', '⭐', '☄️'];
 
 interface HorseState {
   id: number;
-  x: number;
-  color: string;
-  jockeyColor: string;
-  name: string;
-  lane: number;
+  progress: number; // 0-100%
   speed: number;
-  legPhase: number;
+  animPhase: number;
 }
 
 export const HorseRacingGame = () => {
   const { user } = useTelegramAuth();
   const { profile, refetch: refreshProfile } = useProfile(user?.id);
   const { useFreebet, useDemo } = useBalanceMode();
-  
+
   const [betAmount, setBetAmount] = useState("10");
   const [selectedHorse, setSelectedHorse] = useState<number | null>(null);
   const [isRacing, setIsRacing] = useState(false);
   const [horses, setHorses] = useState<HorseState[]>([]);
   const [winner, setWinner] = useState<number | null>(null);
   const [lastGameNumber, setLastGameNumber] = useState<number | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [wonAmount, setWonAmount] = useState<number | null>(null);
   const animationRef = useRef<number>();
   const raceStartTime = useRef<number>(0);
-  // Store server-determined winner
   const serverWinnerRef = useRef<number | null>(null);
 
   const COEFFICIENT = 6;
-  const TRACK_START = 80;
-  const FINISH_LINE_PERCENT = 0.88;
   const BASE_RACE_TIME = 6000;
 
   const { data: gameSettings } = useQuery({
@@ -69,135 +68,18 @@ export const HorseRacingGame = () => {
   const freebetBalance = profile?.freebet_balance || 0;
   const currentBalance = useFreebet ? freebetBalance : balance;
 
-  const initializeHorses = useCallback(() => {
-    return HORSE_COLORS.map((color, index) => ({
+  const initializeHorses = useCallback((): HorseState[] => {
+    return HORSE_COLORS.map((_, index) => ({
       id: index + 1,
-      x: TRACK_START,
-      color,
-      jockeyColor: JOCKEY_COLORS[index],
-      name: HORSE_NAMES[index],
-      lane: index,
+      progress: 0,
       speed: 0,
-      legPhase: Math.random() * Math.PI * 2,
+      animPhase: Math.random() * Math.PI * 2,
     }));
   }, []);
 
   useEffect(() => {
     setHorses(initializeHorses());
   }, [initializeHorses]);
-
-  const drawTopDownHorse = (
-    ctx: CanvasRenderingContext2D, x: number, y: number, color: string,
-    jockeyColor: string, id: number, legPhase: number, isRunning: boolean
-  ) => {
-    ctx.save();
-    ctx.translate(x, y);
-    const legMove = isRunning ? Math.sin(legPhase) * 4 : 0;
-    const legMove2 = isRunning ? Math.sin(legPhase + Math.PI) * 4 : 0;
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath(); ctx.ellipse(2, 2, 22, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = shadeColor(color, -20);
-    ctx.beginPath(); ctx.ellipse(-12 + legMove2, -6, 4, 3, 0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(-12 + legMove2, 6, 4, 3, -0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(10 + legMove, -6, 4, 3, 0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(10 + legMove, 6, 4, 3, -0.3, 0, Math.PI * 2); ctx.fill();
-    const tailWave = isRunning ? Math.sin(legPhase * 1.5) * 3 : 0;
-    ctx.strokeStyle = shadeColor(color, -30); ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.bezierCurveTo(-25, tailWave, -28, -tailWave, -26, tailWave * 0.5); ctx.stroke();
-    const bodyGrad = ctx.createLinearGradient(-15, -8, -15, 8);
-    bodyGrad.addColorStop(0, shadeColor(color, 15)); bodyGrad.addColorStop(0.5, color); bodyGrad.addColorStop(1, shadeColor(color, -15));
-    ctx.fillStyle = bodyGrad; ctx.beginPath(); ctx.ellipse(0, 0, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(16, 0, 6, 5, 0.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(24, 0, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = shadeColor(color, -10);
-    ctx.beginPath(); ctx.ellipse(26, -4, 2, 1.5, -0.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(26, 4, 2, 1.5, 0.5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = shadeColor(color, -25); ctx.lineWidth = 2;
-    for (let i = 0; i < 5; i++) {
-      const maneWave = isRunning ? Math.sin(legPhase + i * 0.3) * 2 : 0;
-      ctx.beginPath(); ctx.moveTo(12 - i * 3, 0); ctx.lineTo(10 - i * 3 - maneWave, -7 - i * 0.5); ctx.stroke();
-    }
-    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.ellipse(-2, 0, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = jockeyColor; ctx.beginPath(); ctx.ellipse(-2, 0, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fcd9b6'; ctx.beginPath(); ctx.arc(2, 0, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = jockeyColor; ctx.beginPath(); ctx.arc(2, 0, 2.5, Math.PI * 0.5, Math.PI * 1.5); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 6px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(id.toString(), -2, 0);
-    ctx.restore();
-  };
-
-  const shadeColor = (color: string, percent: number) => {
-    const num = parseInt(color.replace('#', ''), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
-    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
-    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-  };
-
-  const drawScene = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number, currentHorses: HorseState[], isRunning: boolean) => {
-    const dpr = window.devicePixelRatio || 1;
-    ctx.save(); ctx.scale(dpr, dpr);
-    const w = width / dpr; const h = height / dpr;
-    const laneHeight = h / 8; const trackTop = laneHeight; const trackHeight = laneHeight * 6;
-    const finishX = w * FINISH_LINE_PERCENT;
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, trackTop);
-    skyGrad.addColorStop(0, '#87ceeb'); skyGrad.addColorStop(1, '#4ade80');
-    ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, trackTop);
-    ctx.fillStyle = '#22c55e'; ctx.fillRect(0, trackTop, w, trackHeight);
-    ctx.fillStyle = '#16a34a'; ctx.fillRect(0, trackTop + trackHeight, w, h - trackTop - trackHeight);
-    const trackGrad = ctx.createLinearGradient(0, trackTop, 0, trackTop + trackHeight);
-    trackGrad.addColorStop(0, '#a3591a'); trackGrad.addColorStop(0.3, '#92400e');
-    trackGrad.addColorStop(0.7, '#92400e'); trackGrad.addColorStop(1, '#78350f');
-    ctx.fillStyle = trackGrad; ctx.fillRect(TRACK_START - 20, trackTop + 5, w - TRACK_START, trackHeight - 10);
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(TRACK_START - 20, trackTop + 5); ctx.lineTo(w, trackTop + 5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(TRACK_START - 20, trackTop + trackHeight - 5); ctx.lineTo(w, trackTop + trackHeight - 5); ctx.stroke();
-    ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1;
-    for (let i = 1; i < 6; i++) {
-      const y = trackTop + 5 + (i * (trackHeight - 10) / 6);
-      ctx.beginPath(); ctx.moveTo(TRACK_START, y); ctx.lineTo(w, y); ctx.stroke();
-    }
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(TRACK_START, trackTop + 5, 4, trackHeight - 10);
-    const checkSize = 8;
-    for (let row = 0; row < Math.ceil((trackHeight - 10) / checkSize); row++) {
-      for (let col = 0; col < 3; col++) {
-        ctx.fillStyle = (row + col) % 2 === 0 ? '#ffffff' : '#000000';
-        ctx.fillRect(finishX + col * checkSize, trackTop + 5 + row * checkSize, checkSize, checkSize);
-      }
-    }
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(finishX + 10, trackTop - 30, 4, 40);
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath(); ctx.moveTo(finishX + 14, trackTop - 30); ctx.lineTo(finishX + 40, trackTop - 20); ctx.lineTo(finishX + 14, trackTop - 10); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (let i = 0; i < 6; i++) {
-      const y = trackTop + 5 + ((i + 0.5) * (trackHeight - 10) / 6);
-      ctx.fillText((i + 1).toString(), TRACK_START - 35, y);
-    }
-    currentHorses.forEach((horse) => {
-      const y = trackTop + 5 + ((horse.lane + 0.5) * (trackHeight - 10) / 6);
-      drawTopDownHorse(ctx, horse.x, y, horse.color, horse.jockeyColor, horse.id, horse.legPhase, isRunning);
-    });
-    ctx.fillStyle = '#374151'; ctx.fillRect(10, trackTop - 25, w - 20, 20);
-    for (let i = 0; i < 50; i++) {
-      const cx = 20 + (i * ((w - 40) / 50)); const cy = trackTop - 15;
-      ctx.fillStyle = `hsl(${Math.random() * 360}, 60%, 50%)`;
-      ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    drawScene(ctx, canvas.width, canvas.height, horses, isRacing);
-  }, [horses, drawScene, isRacing]);
 
   const formatAmount = (amount: number): string => {
     if (amount >= 1_000_000_000) return (amount / 1_000_000_000).toFixed(2) + ' млрд';
@@ -218,7 +100,6 @@ export const HorseRacingGame = () => {
     if (selectedHorse === null) { toast.error("Выберите лошадь"); return; }
 
     try {
-      // Call server RPC - determines winner and handles balance
       const { data, error } = await supabase.rpc("play_horse_racing_server", {
         _user_id: user.id,
         _bet_amount: bet,
@@ -234,24 +115,28 @@ export const HorseRacingGame = () => {
       const winningHorse = response.winning_horse;
       serverWinnerRef.current = winningHorse;
       setLastGameNumber(response.game_number);
-      
-      // Start animation with server-determined winner
+      setWonAmount(response.won ? response.win_amount : null);
+
+      // Countdown
+      setCountdown(3);
+      for (let i = 2; i >= 0; i--) {
+        await new Promise(r => setTimeout(r, 800));
+        setCountdown(i);
+      }
+      await new Promise(r => setTimeout(r, 400));
+      setCountdown(null);
+
+      // Start animation
       setWinner(null);
       setIsRacing(true);
       raceStartTime.current = Date.now();
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dpr = window.devicePixelRatio || 1;
-      const canvasWidth = canvas.width / dpr;
-      const finishX = canvasWidth * FINISH_LINE_PERCENT - 30;
-
       const raceHorses = initializeHorses().map((horse) => {
         const isWinner = horse.id === winningHorse;
-        const baseSpeed = (finishX - TRACK_START) / (BASE_RACE_TIME / 16);
+        const baseSpeed = 100 / (BASE_RACE_TIME / 16);
         return {
           ...horse,
-          speed: isWinner ? baseSpeed * (1.1 + Math.random() * 0.15) : baseSpeed * (0.7 + Math.random() * 0.35),
+          speed: isWinner ? baseSpeed * (1.1 + Math.random() * 0.15) : baseSpeed * (0.65 + Math.random() * 0.35),
         };
       });
 
@@ -264,12 +149,12 @@ export const HorseRacingGame = () => {
         setHorses((prevHorses) => {
           const updated = prevHorses.map((horse, idx) => {
             const raceHorse = raceHorses[idx];
-            const variance = Math.sin(elapsed * 0.003 + horse.id) * 2;
-            const newX = TRACK_START + (raceHorse.speed * (elapsed / 16)) + variance;
-            return { ...horse, x: Math.min(newX, finishX + 50), legPhase: horse.legPhase + 0.4 };
+            const variance = Math.sin(elapsed * 0.003 + horse.id) * 1.5;
+            const newProgress = Math.min(100, (raceHorse.speed * (elapsed / 16)) + variance);
+            return { ...horse, progress: newProgress, animPhase: horse.animPhase + 0.3 };
           });
-          
-          const finishedHorse = updated.find(h => h.x >= finishX);
+
+          const finishedHorse = updated.find(h => h.progress >= 98);
           if (finishedHorse && !raceFinished) {
             raceFinished = true;
             setTimeout(() => {
@@ -278,12 +163,12 @@ export const HorseRacingGame = () => {
               refreshProfile();
 
               if (response.won) {
-                toast.success(`🏆 ${HORSE_NAMES[winningHorse - 1]} победила! Вы выиграли ${formatAmount(response.win_amount)}₽!`);
+                toast.success(`🏆 ${HORSE_NAMES[winningHorse - 1]} победила! +${formatAmount(response.win_amount)}₽!`);
               } else {
                 toast.error(`${HORSE_NAMES[winningHorse - 1]} победила. Вы проиграли.`);
               }
 
-              setTimeout(() => { setHorses(initializeHorses()); setWinner(null); }, 3000);
+              setTimeout(() => { setHorses(initializeHorses()); setWinner(null); setWonAmount(null); }, 4000);
             }, 100);
           }
           return updated;
@@ -316,56 +201,199 @@ export const HorseRacingGame = () => {
 
   return (
     <div className="space-y-4">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold flex items-center justify-center gap-2">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/40 via-card to-emerald-900/30 border border-amber-500/20 p-4">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDIxNSwwLDAuMDUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2EpIi8+PC9zdmc+')] opacity-50" />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
+              🏇
+            </div>
+            <div>
+              <h2 className="text-xl font-black tracking-tight text-foreground">СКАЧКИ</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-amber-400 font-bold">x{COEFFICIENT}</span>
+                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-medium">🔒 Server</span>
+              </div>
+            </div>
+          </div>
           {lastGameNumber && (
-            <span className="text-sm font-mono bg-primary/20 px-2 py-1 rounded text-primary">#{lastGameNumber}</span>
+            <span className="text-xs font-mono bg-primary/20 px-2 py-1 rounded-lg text-primary font-bold">
+              #{lastGameNumber}
+            </span>
           )}
-          🏇 Скачки
-          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">🔒 Server</span>
-        </h2>
-        <p className="text-sm text-muted-foreground">Коэффициент: x{COEFFICIENT}</p>
+        </div>
       </div>
 
-      <canvas ref={canvasRef} className="w-full h-48 rounded-lg border border-border" style={{ imageRendering: 'pixelated' }} />
-
-      {!isRacing && !winner && (
-        <>
-          <div className="grid grid-cols-3 gap-2">
-            {HORSE_NAMES.map((name, i) => (
-              <Button key={i} variant={selectedHorse === i + 1 ? "default" : "outline"} size="sm"
-                onClick={() => setSelectedHorse(i + 1)}
-                className={selectedHorse === i + 1 ? "ring-2 ring-primary" : ""}>
-                <div className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: HORSE_COLORS[i] }} />
-                {name}
-              </Button>
-            ))}
+      {/* Countdown Overlay */}
+      {countdown !== null && (
+        <div className="relative rounded-2xl overflow-hidden bg-card/90 border border-border p-12 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-7xl font-black text-primary animate-bounce-in" key={countdown}>
+              {countdown === 0 ? '🏁' : countdown}
+            </div>
+            <p className="text-muted-foreground text-sm mt-2 font-medium">
+              {countdown === 0 ? 'СТАРТ!' : 'Приготовьтесь...'}
+            </p>
           </div>
-
-          <div>
-            <label className="text-sm text-muted-foreground">Ставка (₽)</label>
-            <Input type="number" value={betAmount} onChange={(e) => handleBetChange(e.target.value)}
-              placeholder="Введите ставку" min={minBet} max={maxBet} />
-          </div>
-
-          <Button onClick={startRace} disabled={selectedHorse === null || !betAmount}
-            className="w-full bg-gradient-gold hover:opacity-90 font-bold py-6">
-            🏁 Начать гонку
-          </Button>
-        </>
-      )}
-
-      {isRacing && (
-        <div className="text-center animate-pulse">
-          <p className="text-lg font-bold">🏁 Гонка идёт...</p>
         </div>
       )}
 
+      {/* Race Track */}
+      {countdown === null && (
+        <div className="rounded-2xl overflow-hidden bg-gradient-to-b from-emerald-950/60 via-emerald-900/40 to-emerald-950/60 border border-emerald-500/20 p-3">
+          <div className="space-y-1.5">
+            {horses.map((horse, i) => {
+              const isWinnerHorse = winner === horse.id;
+              const isSelected = selectedHorse === horse.id;
+              const colorData = HORSE_COLORS[i];
+
+              return (
+                <div key={horse.id} className="relative">
+                  {/* Lane */}
+                  <div className={`relative h-10 rounded-lg overflow-hidden transition-all ${
+                    isWinnerHorse ? 'ring-2 ring-primary shadow-lg shadow-primary/30' : 
+                    isSelected ? 'ring-1 ring-primary/40' : ''
+                  }`}
+                    style={{ background: `linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.3) 100%)` }}
+                  >
+                    {/* Track pattern */}
+                    <div className="absolute inset-0 opacity-20" style={{
+                      backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 21px)',
+                    }} />
+
+                    {/* Lane number */}
+                    <div className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold z-10"
+                      style={{ background: colorData.main, color: 'white' }}>
+                      {horse.id}
+                    </div>
+
+                    {/* Finish line */}
+                    <div className="absolute right-2 top-0 bottom-0 w-1 opacity-30"
+                      style={{ background: 'repeating-linear-gradient(180deg, white 0px, white 3px, black 3px, black 6px)' }} />
+
+                    {/* Horse runner */}
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 h-8 flex items-center transition-none z-10"
+                      style={{ left: `calc(${Math.min(horse.progress, 95)}% - 10px)` }}
+                    >
+                      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg shadow-lg ${isRacing ? 'animate-pulse' : ''}`}
+                        style={{ background: `linear-gradient(135deg, ${colorData.main}, ${colorData.accent})` }}>
+                        <span className="text-lg" style={{ 
+                          transform: isRacing ? `scaleX(${1 + Math.sin(horse.animPhase) * 0.1})` : 'none',
+                        }}>🏇</span>
+                      </div>
+                      {/* Speed trail */}
+                      {isRacing && horse.progress > 5 && (
+                        <div className="absolute right-full top-1/2 -translate-y-1/2 flex gap-0.5 opacity-40">
+                          {[...Array(3)].map((_, j) => (
+                            <div key={j} className="w-1 h-0.5 rounded-full"
+                              style={{ background: colorData.accent, opacity: 1 - j * 0.3 }} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Progress bar bg */}
+                    <div className="absolute bottom-0 left-8 right-4 h-0.5 bg-white/5">
+                      <div className="h-full transition-none rounded-full"
+                        style={{ width: `${horse.progress}%`, background: `linear-gradient(90deg, ${colorData.main}, ${colorData.accent})` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Winner Banner */}
       {winner && (
-        <div className="text-center">
-          <p className="text-lg font-bold">
-            🏆 {HORSE_NAMES[winner - 1]} победила!
-          </p>
+        <div className={`rounded-2xl p-4 text-center border ${
+          wonAmount ? 'bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border-primary/40' : 
+          'bg-gradient-to-r from-destructive/20 via-destructive/10 to-destructive/20 border-destructive/40'
+        }`}>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Trophy className={`w-5 h-5 ${wonAmount ? 'text-primary' : 'text-muted-foreground'}`} />
+            <span className="text-lg font-black">
+              {HORSE_EMOJI[winner - 1]} {HORSE_NAMES[winner - 1]}
+            </span>
+          </div>
+          {wonAmount ? (
+            <p className="text-primary font-bold text-xl">+{formatAmount(wonAmount)}₽</p>
+          ) : (
+            <p className="text-muted-foreground text-sm">Вы проиграли</p>
+          )}
+        </div>
+      )}
+
+      {/* Controls */}
+      {!isRacing && !winner && countdown === null && (
+        <div className="space-y-3">
+          {/* Horse Selection */}
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-2 block">Выберите лошадь</label>
+            <div className="grid grid-cols-3 gap-2">
+              {HORSE_NAMES.map((name, i) => {
+                const colorData = HORSE_COLORS[i];
+                const isSelected = selectedHorse === i + 1;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedHorse(i + 1)}
+                    className={`relative p-2.5 rounded-xl border-2 transition-all text-left ${
+                      isSelected
+                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20 scale-[1.02]'
+                        : 'border-border bg-card hover:border-muted-foreground/30 hover:bg-card/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full shadow-inner" 
+                        style={{ background: `linear-gradient(135deg, ${colorData.main}, ${colorData.accent})` }} />
+                      <span className="text-xs font-bold truncate">{HORSE_EMOJI[i]} {name}</span>
+                    </div>
+                    {isSelected && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                        <Zap className="w-2.5 h-2.5 text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bet Input */}
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Ставка (₽)</label>
+            <Input type="number" value={betAmount} onChange={(e) => handleBetChange(e.target.value)}
+              placeholder="Введите ставку" min={minBet} max={maxBet}
+              className="bg-card border-border" />
+            <div className="flex gap-1 mt-1.5">
+              {[10, 50, 100, 500].map(v => (
+                <button key={v} onClick={() => setBetAmount(String(v))}
+                  className="flex-1 text-[10px] py-1 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground font-medium transition-colors">
+                  {v}₽
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Start Button */}
+          <Button onClick={startRace} disabled={selectedHorse === null || !betAmount}
+            className="w-full bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90 font-black py-6 text-lg text-primary-foreground shadow-lg shadow-primary/30">
+            🏁 СТАРТ
+          </Button>
+        </div>
+      )}
+
+      {/* Racing indicator */}
+      {isRacing && countdown === null && (
+        <div className="text-center py-2">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+            <Timer className="w-4 h-4 text-primary animate-spin" />
+            <span className="text-sm font-bold text-primary">Гонка идёт...</span>
+          </div>
         </div>
       )}
     </div>
