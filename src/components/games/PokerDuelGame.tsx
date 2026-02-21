@@ -1092,11 +1092,14 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     const cleanId = getCleanUserId();
     const isMyTurn = !!cleanId && activeDuel.current_turn === cleanId;
     
+    // Reset timer when turn changes
+    setTimeLeft(TURN_TIME_SECONDS);
+    
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           if (isMyTurn && !actionLoading) {
-            const maxBet = Math.max(
+            const maxBetInRound = Math.max(
               activeDuel.creator_current_bet || 0,
               activeDuel.opponent_current_bet || 0,
               activeDuel.player3_current_bet || 0,
@@ -1104,20 +1107,21 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
             );
             
             let myBet = 0;
-              if (cleanId === activeDuel.creator_id) myBet = activeDuel.creator_current_bet || 0;
-              else if (cleanId === activeDuel.opponent_id) myBet = activeDuel.opponent_current_bet || 0;
-              else if (cleanId === activeDuel.player3_id) myBet = activeDuel.player3_current_bet || 0;
-              else if (cleanId === activeDuel.player4_id) myBet = activeDuel.player4_current_bet || 0;
+            if (cleanId === activeDuel.creator_id) myBet = activeDuel.creator_current_bet || 0;
+            else if (cleanId === activeDuel.opponent_id) myBet = activeDuel.opponent_current_bet || 0;
+            else if (cleanId === activeDuel.player3_id) myBet = activeDuel.player3_current_bet || 0;
+            else if (cleanId === activeDuel.player4_id) myBet = activeDuel.player4_current_bet || 0;
             
-            const callAmount = maxBet - myBet;
+            const callAmt = maxBetInRound - myBet;
             
-            if (callAmount === 0) {
+            if (callAmt === 0) {
+              // No raise to match - auto check
               performAction('check');
               toast.info('Время вышло - автоматический чек');
             } else {
-              // If there's a raise to match and timer expires - auto fold (loss)
-              performAction('fold');
-              toast.warning('Время вышло - автоматический фолд');
+              // There's a raise - auto call (not fold, as per rules: 30s = auto check/call)
+              performAction('call');
+              toast.info('Время вышло - автоматический колл');
             }
           }
           return TURN_TIME_SECONDS;
@@ -1129,7 +1133,7 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [activeDuel?.id, activeDuel?.current_turn, getCleanUserId, actionLoading]);
+  }, [activeDuel?.id, activeDuel?.current_turn, activeDuel?.game_phase, getCleanUserId, actionLoading]);
 
   useEffect(() => { 
     if (!userId) return; 
@@ -1383,7 +1387,12 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
               </div>
 
               {/* Action Buttons - only if game is active */}
-              {!isFinishedGame && isMyTurn && currentDuel.game_phase !== 'showdown' && (
+              {!isFinishedGame && isMyTurn && currentDuel.game_phase !== 'showdown' && (() => {
+                const remainingLimit = Math.max(0, (currentDuel.max_balance || 9999) - (myCurrentBet || 0));
+                const maxRaiseAllowed = Math.min(balance, remainingLimit);
+                const minRaise = Math.max(1, callAmount); // minimum raise = at least call amount
+                
+                return (
                 <div className="space-y-2 pt-2 border-t border-border/50">
                   <div className="flex gap-2">
                     <Button 
@@ -1410,33 +1419,39 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                       <Button 
                         onClick={() => performAction('call')} 
                         variant="secondary" 
-                        disabled={actionLoading} 
+                        disabled={actionLoading || callAmount > balance} 
                         className="flex-1"
                         size="sm"
                       >
-                        📞 Колл {callAmount}₽
+                        📞 Колл {callAmount.toFixed(0)}₽
                       </Button>
                     )}
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Input 
-                      type="number" 
-                      value={raiseAmount} 
-                      onChange={(e) => setRaiseAmount(e.target.value)} 
-                      placeholder="Рейз" 
-                      className="flex-1" 
-                      max={currentDuel.max_balance - (myCurrentBet || 0)}
-                    />
-                    <Button 
-                      onClick={() => performAction('raise', parseFloat(raiseAmount) || 0)} 
-                      disabled={actionLoading || !raiseAmount} 
-                      className="flex-1"
-                      size="sm"
-                    >
-                      ⬆️ Рейз
-                    </Button>
-                  </div>
+                  {maxRaiseAllowed > callAmount && (
+                    <div className="flex gap-2">
+                      <Input 
+                        type="number" 
+                        value={raiseAmount} 
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setRaiseAmount(String(Math.min(val, maxRaiseAllowed)));
+                        }} 
+                        placeholder="Рейз" 
+                        className="flex-1" 
+                        min={minRaise}
+                        max={maxRaiseAllowed}
+                      />
+                      <Button 
+                        onClick={() => performAction('raise', parseFloat(raiseAmount) || 0)} 
+                        disabled={actionLoading || !raiseAmount || (parseFloat(raiseAmount) || 0) > maxRaiseAllowed || (parseFloat(raiseAmount) || 0) < minRaise} 
+                        className="flex-1"
+                        size="sm"
+                      >
+                        ⬆️ Рейз
+                      </Button>
+                    </div>
+                  )}
                   
                   <Button 
                     onClick={() => performAction('all-in')} 
@@ -1445,10 +1460,11 @@ export const PokerDuelGame = ({ visitorId, balance, onBalanceUpdate }: PokerDuel
                     className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
                     size="sm"
                   >
-                    🔥 Ва-банк (до {Math.min(balance, currentDuel.max_balance - (myCurrentBet || 0))}₽)
+                    🔥 Ва-банк ({maxRaiseAllowed.toFixed(0)}₽)
                   </Button>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Showdown Result with Exit Button */}
               {(currentDuel.game_phase === 'showdown' || isFinishedGame) && (
