@@ -916,6 +916,24 @@ export type Database = {
           },
         ]
       }
+      game_rate_limits: {
+        Row: {
+          game_name: string
+          last_action_at: string
+          user_id: string
+        }
+        Insert: {
+          game_name: string
+          last_action_at?: string
+          user_id: string
+        }
+        Update: {
+          game_name?: string
+          last_action_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_sessions: {
         Row: {
           bet_amount: number
@@ -3837,6 +3855,7 @@ export type Database = {
             }
             Returns: Json
           }
+      calc_bj_hand: { Args: { cards: string[] }; Returns: number }
       calculate_all_parlay_bets: {
         Args: never
         Returns: {
@@ -3892,17 +3911,16 @@ export type Database = {
       check_black_crow_access: { Args: { _user_id: string }; Returns: boolean }
       check_email_for_bonus: { Args: { _user_id: string }; Returns: Json }
       check_rate_limit: {
-        Args: {
-          _action_type: string
-          _min_interval_ms?: number
-          _user_id: string
-        }
+        Args: { _game: string; _interval_ms?: number; _user_id: string }
         Returns: boolean
       }
-      chicken_road_step: {
-        Args: { _column: number; _session_id: string }
+      chicken_road_cashout: {
+        Args: { _session_id: string; _user_id: string }
         Returns: Json
       }
+      chicken_road_step:
+        | { Args: { _column: number; _session_id: string }; Returns: Json }
+        | { Args: { _session_id: string; _user_id: string }; Returns: Json }
       claim_achievement_reward: {
         Args: { p_achievement_id: string }
         Returns: Json
@@ -4649,6 +4667,25 @@ export type Database = {
         }
         Returns: Json
       }
+      play_blackjack_server: {
+        Args: {
+          _bet_amount: number
+          _is_demo?: boolean
+          _is_freebet?: boolean
+          _user_id: string
+        }
+        Returns: Json
+      }
+      play_chicken_road_server: {
+        Args: {
+          _bet_amount: number
+          _difficulty: string
+          _is_demo?: boolean
+          _is_freebet?: boolean
+          _user_id: string
+        }
+        Returns: Json
+      }
       play_crypto_trading: {
         Args: {
           _bet_amount: number
@@ -4731,6 +4768,16 @@ export type Database = {
         Returns: Json
       }
       play_horse_racing: {
+        Args: {
+          _bet_amount: number
+          _is_demo?: boolean
+          _is_freebet?: boolean
+          _selected_horse: number
+          _user_id: string
+        }
+        Returns: Json
+      }
+      play_horse_racing_server: {
         Args: {
           _bet_amount: number
           _is_demo?: boolean
